@@ -23,14 +23,19 @@
 
 ## 3. 功能验证（已实际执行）
 
-`coding_check` 全量运行结果：
+`coding_inspect acceptance` 结论：**7/7 验收标准通过，`ready: true`**。
+`coding_inspect quality`：**12 次运行 / 12 次通过 / 通过率 100% / 4 项检查 / 0 个未关闭问题**。
+指纹 `b03f9d35…`，`complete: true`，全部 4 次运行均为 `fresh: current`。
 
-| 检查 | 命令 | 结果 |
-|---|---|---|
-| pytest | `python -m pytest tests -q` | **38 passed** |
-| import-check | 导入 12 个模块 + `web.app` | **ok** |
-| smoke-pipeline | `python tests/smoke_pipeline.py` | **通过** |
-| api-health | FastAPI TestClient `/api/health` | **ok** |
+| 检查 | 命令 | 结果 | run id |
+|---|---|---|---|
+| pytest | `python -m pytest tests -q` | **38 passed** | `c693d932` |
+| import-check | 导入 12 个模块 + `web.app` | **ok** | `2bf78db6` |
+| smoke-pipeline | `python tests/smoke_pipeline.py` | **通过** | `70c06d9e` |
+| api-health | FastAPI TestClient `/api/health` | **ok** | `6499a04c` |
+
+注：`smoke-pipeline` 在 GBK 控制台下中文输出乱码（未设 `PYTHONIOENCODING`），
+不影响退出码与判定，属显示问题。
 
 测试覆盖的关键不变量：
 
