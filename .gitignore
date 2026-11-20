@@ -1,0 +1,17 @@
+# 生成数据与产物（体积大，可由脚本重建）
+data/
+output/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# 编辑器
+.vscode/
+.idea/
+
+# 系统
+Thumbs.db
+.DS_Store

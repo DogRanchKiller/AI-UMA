@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "checks": [
+    {
+      "name": "pytest",
+      "argv": ["python", "-m", "pytest", "tests", "-q"],
+      "kind": "test",
+      "origin": ".uma/coding.json",
+      "coverage": ["ashare/**/*.py", "tests/**/*.py", "scripts/**/*.py", "web/**/*.py"]
+    },
+    {
+      "name": "import-check",
+      "argv": ["python", "-c", "import ashare.config, ashare.datasource, ashare.factors, ashare.labels, ashare.universe, ashare.model, ashare.selection, ashare.portfolio, ashare.backtest, ashare.metrics, ashare.signals, web.app; print('ok')"],
+      "kind": "lint",
+      "origin": ".uma/coding.json",
+      "coverage": ["ashare/**/*.py", "web/**/*.py"]
+    },
+    {
+      "name": "smoke-pipeline",
+      "argv": ["python", "tests/smoke_pipeline.py"],
+      "kind": "test",
+      "origin": ".uma/coding.json",
+      "coverage": ["ashare/**/*.py", "tests/smoke_pipeline.py"]
+    },
+    {
+      "name": "api-health",
+      "argv": ["python", "-c", "import json,pathlib;from fastapi.testclient import TestClient;from web.app import app;c=TestClient(app);r=c.get('/api/health');assert r.status_code==200,r.status_code;d=r.json();assert d['ready'],d;print('api ok')"],
+      "kind": "test",
+      "origin": ".uma/coding.json",
+      "coverage": ["web/**/*.py"]
+    }
+  ]
+}

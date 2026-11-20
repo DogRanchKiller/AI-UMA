@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A股量化信号终端</title>
+<style>
+:root{
+  --bg:#08090c; --surface:#0e1116; --surface-2:#141922; --surface-3:#1a2130;
+  --border:#1f2633; --border-soft:#171d27;
+  --fg:#e8edf5; --fg-2:#a8b3c4; --meta:#6b7789;
+  --accent:#3d8bfd; --accent-soft:rgba(61,139,253,.14);
+  --up:#f2555a; --down:#22b07d; --warn:#e0a33c; --danger:#ff6b6b;
+  --font-ui:"Inter","PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+  --font-mono:"IBM Plex Mono","Cascadia Mono",Consolas,ui-monospace,monospace;
+  --t-xs:11px; --t-sm:12px; --t-md:13px; --t-lg:15px; --t-xl:18px; --t-2xl:24px; --t-3xl:32px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s8:32px; --s12:48px;
+  --r-sm:6px; --r-md:10px; --r-lg:14px;
+  --focus:0 0 0 2px var(--bg),0 0 0 4px var(--accent);
+  --motion:120ms cubic-bezier(.2,0,0,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--fg);font-family:var(--font-ui);
+  font-size:var(--t-md);line-height:1.5;-webkit-font-smoothing:antialiased;
+}
+.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+:focus-visible{outline:none;box-shadow:var(--focus);border-radius:var(--r-sm)}
+
+/* ---------- 顶栏 ---------- */
+.topbar{
+  position:sticky;top:0;z-index:20;
+  display:flex;align-items:center;gap:var(--s4);flex-wrap:wrap;
+  padding:var(--s3) var(--s6);
+  background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border);
+}
+.brand{display:flex;align-items:baseline;gap:var(--s2);font-size:var(--t-lg);font-weight:600;letter-spacing:-.01em}
+.brand .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);align-self:center}
+.brand .sub{font-size:var(--t-xs);color:var(--meta);font-weight:400;letter-spacing:0}
+.pills{display:flex;gap:var(--s2);flex-wrap:wrap;margin-left:auto}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 9px;border-radius:999px;font-size:var(--t-xs);
+  background:var(--surface-2);border:1px solid var(--border);color:var(--fg-2);
+  white-space:nowrap;
+}
+.pill b{color:var(--fg);font-weight:500;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.pill.warn{border-color:color-mix(in srgb,var(--warn) 40%,var(--border));color:var(--warn)}
+.pill.warn b{color:var(--warn)}
+.pill.live .dot{width:6px;height:6px;border-radius:50%;background:var(--down);box-shadow:0 0 0 3px color-mix(in srgb,var(--down) 18%,transparent)}
+
+/* ---------- 布局 ---------- */
+main{max-width:1440px;margin:0 auto;padding:var(--s5) var(--s6) var(--s12)}
+.grid{display:grid;gap:var(--s4)}
+.row-main{grid-template-columns:minmax(0,1.62fr) minmax(0,1fr)}
+.row-mid{grid-template-columns:minmax(0,2.05fr) minmax(0,1fr)}
+.row-low{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)}
+section+section{margin-top:var(--s4)}
+
+.panel{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);
+  display:flex;flex-direction:column;min-width:0;overflow:hidden;
+}
+.panel-hd{
+  display:flex;align-items:center;gap:var(--s3);
+  padding:var(--s3) var(--s4);border-bottom:1px solid var(--border-soft);
+}
+.panel-hd h2{margin:0;font-size:var(--t-md);font-weight:600;letter-spacing:-.01em}
+.panel-hd .hint{font-size:var(--t-xs);color:var(--meta);margin-left:auto;text-align:right}
+.panel-bd{padding:var(--s3) var(--s4) var(--s4);min-width:0}
+.panel-bd.flush{padding:0}
+
+/* ---------- 买入表 ---------- */
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:var(--t-sm)}
+thead th{
+  position:sticky;top:0;background:var(--surface);text-align:left;
+  font-weight:500;color:var(--fg-2);font-size:var(--t-xs);
+  padding:var(--s2) var(--s3);border-bottom:1px solid var(--border);white-space:nowrap;
+}
+tbody td{padding:var(--s2) var(--s3);border-bottom:1px solid var(--border-soft);vertical-align:middle}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr:last-child td{border-bottom:none}
+td.r,thead th.r{text-align:right}
+.code{font-family:var(--font-mono);font-size:var(--t-xs);color:var(--fg-2)}
+.nm{font-weight:500;white-space:nowrap}
+.rank{color:var(--meta);font-family:var(--font-mono);font-size:var(--t-xs);width:22px}
+
+/* ---------- 分位脊柱（签名元素） ---------- */
+.spine{display:inline-block;position:relative;width:72px;height:4px;border-radius:2px;background:var(--border);vertical-align:middle}
+.spine .fill{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--fg-2)}
+.spine .fill.hi{background:var(--up)}
+.spine .fill.mid{background:color-mix(in srgb,var(--up) 62%,var(--surface))}
+.spine .tick{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--fg-2);opacity:.45}
+.pct{font-family:var(--font-mono);font-size:var(--t-xs);color:var(--fg-2);min-width:38px;display:inline-block;text-align:right}
+.reasons{display:flex;gap:4px;flex-wrap:wrap}
+.rs{font-size:var(--t-xs);padding:1px 6px;border-radius:4px;background:var(--surface-2);color:var(--fg-2);border:1px solid var(--border);white-space:nowrap}
+.rs.up{border-color:color-mix(in srgb,var(--up) 30%,var(--border));color:color-mix(in srgb,var(--up) 88%,var(--fg))}
+.rs.dn{border-color:color-mix(in srgb,var(--warn) 28%,var(--border));color:var(--warn)}
+
+/* ---------- KPI ---------- */
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border-soft)}
+.kpi{background:var(--surface);padding:var(--s4);display:flex;flex-direction:column;gap:var(--s1);min-width:0}
+.kpi .lbl{font-size:var(--t-xs);color:var(--meta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .val{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:var(--t-2xl);font-weight:500;letter-spacing:-.02em;line-height:1.15}
+.kpi .val.sm{font-size:var(--t-xl)}
+.kpi .note{font-size:var(--t-xs);color:var(--meta)}
+.up{color:var(--up)} .down{color:var(--down)} .neu{color:var(--fg)}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-xs);color:var(--fg-2)}
+.badge i{width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block}
+
+/* ---------- 图表 ---------- */
+.chart{width:100%;height:260px}
+.chart.tall{height:300px}
+.chart.sm{height:196px}
+/* 底部三栏等高：让图表撑满面板，避免出现大片空白 */
+.row-low{align-items:stretch}
+.row-low .panel{height:100%}
+.row-low .panel-bd.flush{flex:1;display:flex;min-height:0}
+.row-low .panel-bd.flush>div{flex:1;min-height:230px}
+.row-low .chart.sm{height:100%}
+.legend{display:flex;gap:var(--s4);font-size:var(--t-xs);color:var(--fg-2);padding:0 var(--s4) var(--s3);flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:10px;height:2px;border-radius:1px;display:inline-block}
+
+/* ---------- 诊断 ---------- */
+.diag{display:flex;flex-direction:column;gap:var(--s2)}
+.diag-row{display:flex;justify-content:space-between;gap:var(--s3);font-size:var(--t-sm);padding:5px 0;border-bottom:1px solid var(--border-soft)}
+.diag-row:last-child{border-bottom:none}
+.diag-row span:first-child{color:var(--fg-2)}
+.diag-row span:last-child{font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--fg)}
+
+/* ---------- 闸门横幅 ---------- */
+.gate{
+  display:flex;align-items:flex-start;gap:var(--s3);
+  margin:var(--s3) var(--s4) 0;padding:var(--s3) var(--s4);
+  border-radius:var(--r-sm);font-size:var(--t-sm);line-height:1.55;
+  border:1px solid color-mix(in srgb,var(--warn) 45%,var(--border));
+  background:color-mix(in srgb,var(--warn) 10%,var(--surface));
+  color:var(--fg-2);
+}
+.gate.on{border-color:color-mix(in srgb,var(--up) 40%,var(--border));
+  background:color-mix(in srgb,var(--up) 8%,var(--surface))}
+.gate .k{font-weight:600;color:var(--warn);white-space:nowrap}
+.gate.on .k{color:var(--up)}
+.gate.dim{opacity:.75}
+
+/* ---------- 状态 ---------- */
+.state{padding:var(--s8) var(--s4);text-align:center;color:var(--meta);font-size:var(--t-sm)}
+.state.err{color:var(--warn)}
+.state b{display:block;color:var(--fg-2);font-weight:500;margin-bottom:var(--s1)}
+.skel{background:linear-gradient(90deg,var(--surface-2) 25%,var(--surface-3) 50%,var(--surface-2) 75%);background-size:200% 100%;animation:sh 1.2s infinite;border-radius:4px;height:13px}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.foot{margin-top:var(--s6);padding:var(--s4);border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);font-size:var(--t-xs);color:var(--meta);line-height:1.7}
+.foot b{color:var(--warn);font-weight:500}
+.foot code{font-family:var(--font-mono);color:var(--fg-2);background:var(--surface-2);padding:1px 5px;border-radius:3px}
+
+@media (max-width:1100px){
+  .row-main,.row-mid,.row-low{grid-template-columns:1fr}
+  .chart{height:230px}
+}
+@media (max-width:640px){
+  main{padding:var(--s3) var(--s3) var(--s8)}
+  .topbar{padding:var(--s3) var(--s4)}
+  .brand{font-size:var(--t-md)}
+  .kpis{grid-template-columns:1fr 1fr}
+  .kpi .val{font-size:var(--t-xl)}
+  .spine{width:52px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="dot"></span>A股量化信号终端 <span class="sub">A-Share Quant Signal</span></div>
+  <div class="pills" id="pills">
+    <span class="pill live"><span class="dot"></span>加载中</span>
+  </div>
+</header>
+
+<main>
+  <!-- 判定区 -->
+  <section class="grid row-main">
+    <div class="panel">
+      <div class="panel-hd">
+        <h2>本期买入候选</h2>
+        <span class="hint" id="buyHint">等权建仓</span>
+      </div>
+      <div class="panel-bd flush" id="buyBody">
+        <div class="state"><b>读取信号中</b><div class="skel" style="margin:var(--s3) auto 0;width:70%"></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd"><h2>模型绩效</h2><span class="hint" id="perfRange"></span></div>
+      <div class="panel-bd flush">
+        <div class="kpis" id="kpis">
+          <div class="kpi"><div class="lbl">年化收益</div><div class="val skel" style="height:28px;width:80%"></div></div>
+          <div class="kpi"><div class="lbl">夏普比率</div><div class="val skel" style="height:28px;width:60%"></div></div>
+          <div class="kpi"><div class="lbl">最大回撤</div><div class="val skel" style="height:28px;width:70%"></div></div>
+          <div class="kpi"><div class="lbl">超额年化</div><div class="val skel" style="height:28px;width:75%"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 信任区 -->
+  <section class="grid row-mid">
+    <div class="panel">
+      <div class="panel-hd"><h2>净值与回撤</h2><span class="hint" id="eqHint"></span></div>
+      <div class="legend">
+        <span><i style="background:var(--accent)"></i>策略净值</span>
+        <span><i style="background:var(--meta)"></i>沪深300</span>
+        <span><i style="background:color-mix(in srgb,var(--danger) 60%,transparent)"></i>策略回撤</span>
+      </div>
+      <div class="panel-bd flush"><div id="eqChart" class="chart tall"></div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd"><h2>逐日 IC</h2><span class="hint" id="icHint"></span></div>
+      <div class="panel-bd flush"><div id="icChart" class="chart tall"></div></div>
+    </div>
+  </section>
+
+  <!-- 诊断区 -->
+  <section class="grid row-low">
+    <div class="panel">
+      <div class="panel-hd"><h2>因子重要性</h2><span class="hint">LightGBM gain 占比</span></div>
+      <div class="panel-bd flush"><div id="impChart" class="chart sm"></div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd"><h2>分层收益单调性</h2><span class="hint">第5层 > 第1层 才算有效</span></div>
+      <div class="panel-bd flush"><div id="layerChart" class="chart sm"></div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd"><h2>交易诊断</h2><span class="hint">含真实成本</span></div>
+      <div class="panel-bd"><div class="diag" id="diag"></div></div>
+    </div>
+  </section>
+
+  <div class="foot" id="foot">
+    <b>风险声明</b>　本系统输出的是基于历史量价数据的统计信号，<b>不构成投资建议，不承诺任何收益</b>。
+    回测结果包含大量近似假设（见下方能力边界），真实交易结果会显著偏离。
+    请把输出当作研究工具，而不是收益承诺。
+  </div>
+</main>
+
+<script src="/static/echarts.min.js"></script>
+<script>
+"use strict";
+
+const C = {
+  accent:"#3d8bfd", up:"#f2555a", down:"#22b07d", warn:"#e0a33c", danger:"#ff6b6b",
+  meta:"#6b7789", fg2:"#a8b3c4", fg:"#e8edf5", border:"#1f2633", surface:"#0e1116",
+  mono:'"IBM Plex Mono","Cascadia Mono",Consolas,monospace',
+};
+
+const $ = (id) => document.getElementById(id);
+const fmtPct = (v, d=1) => (v==null||Number.isNaN(v)) ? "—" : (v*100).toFixed(d) + "%";
+const fmtNum = (v, d=2) => (v==null||Number.isNaN(v)) ? "—" : Number(v).toFixed(d);
+const cls = (v) => v>0 ? "up" : v<0 ? "down" : "neu";
+
+async function getJSON(url){
+  const r = await fetch(url, {cache:"no-store"});
+  if(!r.ok){
+    let msg = `HTTP ${r.status}`;
+    try{ const j = await r.json(); if(j.detail) msg = j.detail; }catch(e){}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+function setPills(items){
+  $("pills").innerHTML = items.map(p =>
+    `<span class="pill ${p.cls||""}">${p.live?'<span class="dot"></span>':''}${p.label}` +
+    (p.value!==undefined ? ` <b>${p.value}</b>` : "") + `</span>`).join("");
+}
+
+/* ---------- 分位脊柱 ----------
+   跨横截面的真实分位在第 20 名附近全落在 99.3%~99.9%，直接画出来全部是满格，
+   失去辨识度。所以脊柱改为「榜内相对强度」：把本次入选名单的分数区间拉伸到
+   0~100%，真正回答"这批候选里谁更强"；真实横截面分位仍以数字给出。 */
+function spineHTML(rel){
+  const p = Math.max(0, Math.min(100, rel ?? 0));
+  const kind = p>=85 ? "hi" : p>=55 ? "mid" : "";
+  return `<span class="spine" role="img" aria-label="榜内相对强度 ${p.toFixed(0)}%">` +
+         `<span class="fill ${kind}" style="width:${Math.max(p,4)}%"></span>` +
+         `<span class="tick" title="榜内中位"></span></span>`;
+}
+
+/* ---------- 买入表 ---------- */
+function renderBuys(sig){
+  const buys = sig.buy || [];
+  const riskOn = sig.risk_on !== false;
+  const host = $("buyBody");
+
+  // 闸门横幅：无论有没有候选，都必须先把仓位状态说清楚
+  let gate = "";
+  if(sig.risk_on === false){
+    gate = `<div class="gate"><span class="k">闸门关闭</span><span>${
+      sig.notice || "基准位于均线下方，系统建议空仓观望，以下名单仅为观察，不应直接建仓。"
+    }</span></div>`;
+  }else if(sig.risk_on === true){
+    gate = `<div class="gate on"><span class="k">闸门开放</span>
+      <span>基准位于 ${sig.regime_ma ?? 60} 日均线上方，系统允许建仓。</span></div>`;
+  }
+
+  if(!buys.length){
+    host.innerHTML = gate + `<div class="state"><b>本期无满足条件的标的</b>
+      模型在当前股票池中没有给出足够强的信号。这可能是市场整体走弱、或过滤条件过严。
+      查看下方「交易诊断」确认股票池规模是否正常。</div>`;
+    $("buyHint").textContent = sig.date ? `信号日 ${sig.date}` : "";
+    return;
+  }
+  $("buyHint").textContent =
+    `信号日 ${sig.date} · ${buys.length} 只等权` + (riskOn ? "" : " · 闸门关闭");
+
+  // 榜内相对强度：把入选名单的分数区间拉满，解决"全是 100%"的问题
+  const pcts = buys.map(b => b.percentile ?? 0);
+  const pMin = Math.min(...pcts), pMax = Math.max(...pcts);
+  const span = pMax - pMin;
+  const relOf = (p) => span > 1e-9 ? (p - pMin) / span * 100 : 50;
+
+  const rows = buys.map((b,i)=>`
+    <tr>
+      <td class="rank">${i+1}</td>
+      <td><div class="nm">${b.name}</div><div class="code">${b.code}</div></td>
+      <td>${spineHTML(relOf(b.percentile ?? 0))}</td>
+      <td class="r"><span class="pct">${(b.percentile??0).toFixed(1)}%</span></td>
+      <td class="r num">${b.price!=null?b.price.toFixed(2):"—"}</td>
+      <td><div class="reasons">${(b.reasons||[]).map(r=>`<span class="rs up">${r}</span>`).join("")}</div></td>
+      <td><div class="reasons">${(b.risks||[]).slice(0,2).map(r=>`<span class="rs dn">${r}</span>`).join("")}</div></td>
+    </tr>`).join("");
+  host.innerHTML = gate + `<div class="tbl-wrap"><table>
+    <thead><tr>
+      <th></th><th>股票</th><th>榜内强度</th><th class="r">横截面分位</th>
+      <th class="r">参考价</th><th>主要驱动因子</th><th>反向信号</th>
+    </tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+/* ---------- KPI ---------- */
+function renderKPIs(sm){
+  const p = sm.performance || {};
+  const ic = sm.ic || {};
+  const items = [
+    {lbl:"年化收益", val:fmtPct(p["年化收益"]), c:cls(p["年化收益"]), note:"策略"},
+    {lbl:"夏普比率", val:fmtNum(p["夏普比率"]), c:cls((p["夏普比率"]??0)-1), note:"无风险利率按0"},
+    {lbl:"最大回撤", val:fmtPct(p["最大回撤"]), c:"down", note:"峰值到谷底"},
+    {lbl:"超额年化", val:fmtPct(p["超额年化"]), c:cls(p["超额年化"]), note:"相对沪深300"},
+    {lbl:"IC 均值", val:fmtNum(ic["IC均值"],4), c:cls(ic["IC均值"]), note:"|IC|>0.03 算有信息"},
+    {lbl:"ICIR", val:fmtNum(ic["ICIR"]), c:cls(ic["ICIR"]), note:"IC 稳定性"},
+  ];
+  $("kpis").innerHTML = items.map(i=>`
+    <div class="kpi"><div class="lbl">${i.lbl}</div>
+    <div class="val sm ${i.c}">${i.val}</div>
+    <div class="note">${i.note}</div></div>`).join("");
+  const u = sm.universe || {};
+  $("perfRange").textContent = u.date_range ? `${u.date_range[0]} ~ ${u.date_range[1]}` : "";
+}
+
+/* ---------- 图表 ---------- */
+function baseGrid(o={}){ return Object.assign({left:8,right:12,top:16,bottom:8,containLabel:true}, o); }
+function axisStyle(){ return {axisLine:{lineStyle:{color:C.border}}, axisTick:{show:false},
+  axisLabel:{color:C.meta,fontSize:11,fontFamily:C.mono}, splitLine:{lineStyle:{color:"#131922"}}}; }
+
+function ec(id){ return echarts.init($(id), null, {renderer:"canvas"}); }
+
+function renderEquity(d){
+  const ch = ec("eqChart");
+  ch.setOption({
+    backgroundColor:"transparent",
+    grid:baseGrid({right:16,top:20,bottom:20}),
+    tooltip:{trigger:"axis",backgroundColor:"#0b0f15",borderColor:C.border,
+      textStyle:{color:C.fg,fontSize:12,fontFamily:C.mono},
+      axisPointer:{type:"cross",lineStyle:{color:C.meta,opacity:.4}}},
+    xAxis:Object.assign({type:"category",data:d.dates,boundaryGap:false},axisStyle()),
+    yAxis:[
+      Object.assign({type:"value",scale:true,name:"净值",nameTextStyle:{color:C.meta,fontSize:11}},axisStyle()),
+      Object.assign({type:"value",name:"回撤%",max:0,nameTextStyle:{color:C.meta,fontSize:11},
+        position:"right",splitLine:{show:false},
+        axisLabel:{color:C.meta,fontSize:11,formatter:"{value}%"}}, axisStyle())
+    ],
+    series:[
+      {name:"策略回撤",type:"line",yAxisIndex:1,data:d.drawdown,symbol:"none",
+       lineStyle:{width:0},areaStyle:{color:"rgba(255,107,107,.09)"},z:1},
+      {name:"策略净值",type:"line",data:d.equity,symbol:"none",smooth:false,
+       lineStyle:{color:C.accent,width:2},z:3},
+      {name:"沪深300",type:"line",data:d.benchmark,symbol:"none",
+       lineStyle:{color:C.meta,width:1.5,type:"dashed"},z:2}
+    ]
+  });
+  $("eqHint").textContent = `${d.dates.length} 个数据点`;
+  return ch;
+}
+
+function renderIC(d){
+  const ch = ec("icChart");
+  const mean = d.mean;
+  ch.setOption({
+    backgroundColor:"transparent",
+    grid:baseGrid({top:20,bottom:20}),
+    tooltip:{trigger:"axis",backgroundColor:"#0b0f15",borderColor:C.border,
+      textStyle:{color:C.fg,fontSize:12,fontFamily:C.mono}},
+    xAxis:Object.assign({type:"category",data:d.dates},axisStyle()),
+    yAxis:Object.assign({type:"value",scale:true},axisStyle()),
+    series:[{
+      name:"IC",type:"bar",data:d.values.map(v=>({value:v,
+        itemStyle:{color:v>=0?C.up:C.down,opacity:.85}})),
+      markLine:{silent:true,symbol:"none",data:[{yAxis:mean,label:{formatter:`均值 ${mean}`,color:C.fg2,fontSize:11}}],
+        lineStyle:{color:C.accent,type:"dashed",width:1}}
+    }]
+  });
+  $("icHint").textContent = `均值 ${mean ?? "—"} · 共 ${d.values.length} 期`;
+  return ch;
+}
+
+function renderImportance(d){
+  const ch = ec("impChart");
+  const items = (d.items||[]).slice().reverse();
+  ch.setOption({
+    backgroundColor:"transparent",
+    grid:Object.assign(baseGrid({left:6,right:30,top:8,bottom:6}),{containLabel:true}),
+    tooltip:{trigger:"axis",axisPointer:{type:"shadow"},backgroundColor:"#0b0f15",
+      borderColor:C.border,textStyle:{color:C.fg,fontSize:12},
+      formatter:(p)=>{const it=items[p[0].dataIndex];return `${it.name}<br/>${it.group}<br/>gain 占比 ${(it.share*100).toFixed(1)}%`;}},
+    xAxis:Object.assign({type:"value",axisLabel:{show:false},splitLine:{show:false}},axisStyle()),
+    yAxis:Object.assign({type:"category",data:items.map(i=>i.name),
+      axisLabel:{color:C.fg2,fontSize:11,fontFamily:'inherit',width:96,overflow:"truncate"}},axisStyle()),
+    series:[{type:"bar",data:items.map(i=>i.share),barWidth:"58%",
+      itemStyle:{color:C.accent,opacity:.8,borderRadius:[0,3,3,0]}}]
+  });
+  return ch;
+}
+
+function renderLayers(d){
+  const ch = ec("layerChart");
+  if(!d.values || !d.values.length){
+    $("layerChart").innerHTML = `<div class="state">缺少分层数据</div>`;
+    return null;
+  }
+  ch.setOption({
+    backgroundColor:"transparent",
+    grid:Object.assign(baseGrid({left:16,right:16,top:24,bottom:14}),{containLabel:true}),
+    tooltip:{trigger:"axis",backgroundColor:"#0b0f15",borderColor:C.border,
+      textStyle:{color:C.fg,fontSize:12,fontFamily:C.mono},
+      formatter:(p)=>`${p[0].name}<br/>平均超额 ${p[0].value}%`},
+    xAxis:Object.assign({type:"category",data:d.labels},axisStyle()),
+    yAxis:Object.assign({type:"value",name:"%",nameTextStyle:{color:C.meta,fontSize:11}},axisStyle()),
+    series:[{type:"bar",data:d.values.map(v=>({value:v,
+        itemStyle:{color:v>=0?C.up:C.down,opacity:.85,borderRadius:[3,3,0,0]}})),
+      barWidth:"52%"}]
+  });
+  return ch;
+}
+
+/* ---------- 诊断 ---------- */
+function renderDiag(sm, trades, holdings){
+  const dg = sm.diagnostics || {};
+  const p = sm.performance || {};
+  const m = sm.model || {};
+  const u = sm.universe || {};
+  const rows = [
+    ["股票池规模", u.stocks_in_panel!=null ? `${u.stocks_in_panel} 只` : "—"],
+    ["日均可选标的", u.avg_daily_tradable!=null ? `${u.avg_daily_tradable} 只` : "—"],
+    ["因子数量", m.n_factors!=null ? `${m.n_factors} 个` : "—"],
+    ["训练样本", m.n_train_rows!=null ? `${(m.n_train_rows/10000).toFixed(1)} 万行` : "—"],
+    ["调仓次数", dg["执行次数"]!=null ? `${dg["执行次数"]} 次` : "—"],
+    ["成交笔数", dg["成交笔数"]!=null ? `${dg["成交笔数"]} 笔` : "—"],
+    ["涨停未买入", dg["涨停未买入"]!=null ? `${dg["涨停未买入"]} 次` : "—"],
+    ["跌停未卖出", dg["跌停未卖出"]!=null ? `${dg["跌停未卖出"]} 次` : "—"],
+    ["年调仓次数", p["年调仓次数"]!=null ? `${p["年调仓次数"]} 次` : "—"],
+    ["年化单边换手", p["年化单边换手"]!=null ? fmtPct(p["年化单边换手"],0) : "—"],
+    ["期末持仓", dg["期末持仓数"]!=null ? `${dg["期末持仓数"]} 只` : "—"],
+    ["运行耗时", sm.run_seconds!=null ? `${sm.run_seconds} 秒` : "—"],
+  ];
+  $("diag").innerHTML = rows.map(([k,v])=>
+    `<div class="diag-row"><span>${k}</span><span>${v}</span></div>`).join("");
+}
+
+/* ---------- 启动 ---------- */
+const charts = [];
+function onResize(){ charts.forEach(c=>c && c.resize()); }
+window.addEventListener("resize", onResize);
+
+async function boot(){
+  try{
+    const health = await getJSON("/api/health");
+    if(!health.ready){
+      setPills([{label:"未就绪",value:health.missing.join(","),cls:"warn"}]);
+      $("buyBody").innerHTML = `<div class="state err"><b>还没有计算结果</b>
+        请先运行 <code>python scripts/02_build.py</code> 生成信号与回测结果。</div>`;
+      return;
+    }
+
+    const [sm, sig, eq, ic, imp, layers] = await Promise.all([
+      getJSON("/api/summary"), getJSON("/api/signal"), getJSON("/api/equity"),
+      getJSON("/api/ic"), getJSON("/api/importance"), getJSON("/api/layers"),
+    ]);
+
+    const u = sm.universe || {};
+    const icS = sm.ic || {};
+    const gate = sig.risk_on;
+    setPills([
+      {label:"信号日", value: sig.date || "—", live:true},
+      gate===false
+        ? {label:"仓位状态", value:"空仓观望", cls:"warn"}
+        : {label:"仓位状态", value:"允许建仓"},
+      {label:"股票池", value: u.stocks_in_panel ?? "—"},
+      {label:"因子", value: sm.model?.n_factors ?? "—"},
+      {label:"IC", value: fmtNum(icS["IC均值"],3), cls: Math.abs(icS["IC均值"]??0)<0.01 ? "warn" : ""},
+      {label:"生成于", value: sm.generated_at || "—"},
+    ]);
+
+    renderBuys(sig);
+    renderKPIs(sm);
+
+    charts.push(renderEquity(eq));
+    charts.push(renderIC(ic));
+    charts.push(renderImportance(imp));
+    charts.push(renderLayers(layers));
+    renderDiag(sm);
+    // 等布局稳定后重算尺寸，否则 flex 撑开的容器会给 ECharts 一个过期高度
+    requestAnimationFrame(() => onResize());
+
+    // 能力边界
+    const p = sm.performance || {};
+    const praw = sm.performance_raw_signal || {};
+    $("foot").innerHTML = `
+      <b>风险声明</b>　本系统输出的是基于历史量价数据的统计信号，<b>不构成投资建议，不承诺任何收益</b>。
+      回测含近似假设，真实结果会显著偏离。请当作研究工具使用。<br><br>
+      <b>组合层的实际作用（重要）</b>　裸信号直接等权做多是亏损的：
+      年化 <code>${fmtPct(praw["年化收益"])}</code>、最大回撤 <code>${fmtPct(praw["最大回撤"])}</code>。
+      加入市场状态闸门后变为年化 <code>${fmtPct(p["年化收益"])}</code>、最大回撤 <code>${fmtPct(p["最大回撤"])}</code>。
+      也就是说，<b>收益主要来自"什么时候空仓"，而不是"买哪只"</b>，且闸门参数是在同一段历史上选出来的，存在过拟合风险。<br><br>
+      <b>能力边界</b>　
+      ① 前复权价格由接口按最新价回推，历史值会随分红送转变化，缓存需定期刷新；
+      ② ST 状态按当前证券名称静态剔除，无法还原历史某日的真实 ST 状态；
+      ③ 涨跌停判定用前复权价近似，除权日附近可能误判；
+      ④ 未建模停牌复牌跳空、退市清算、融资融券成本与冲击成本；
+      ⑤ 因子全部来自量价数据，不含财务基本面、行业分类与资金流向；
+      ⑥ 训练窗口 ${sm.config?.train_days ?? "—"} 日、每 ${sm.config?.rebalance_every ?? "—"} 日重训，
+      滚动训练未严格隔离超参数选择集，绩效含轻微选择偏差。<br><br>
+      <b>当前实测</b>　IC 均值 <code>${fmtNum(icS["IC均值"],4)}</code>，
+      ICIR <code>${fmtNum(icS["ICIR"])}</code>，
+      年化单边换手 <code>${p["年化单边换手"]!=null?fmtPct(p["年化单边换手"],0):"—"}</code>。
+      ${Math.abs(icS["IC均值"]??0)<0.02 ? "<b>IC 偏低，说明该模型当前预测能力弱，信号仅供参考。</b>" : ""}
+    `;
+  }catch(err){
+    setPills([{label:"加载失败", value:err.message, cls:"warn"}]);
+    $("buyBody").innerHTML =
+      `<div class="state err"><b>数据加载失败</b>${err.message}</div>`;
+  }
+}
+boot();
+</script>
+</body>
+</html>
