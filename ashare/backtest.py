@@ -77,7 +77,14 @@ def run(
     weight_rows: dict[pd.Timestamp, dict[str, float]] = {}
     holdings_log: dict = {}
     trades: list[dict] = []
-    blocked = {"buy_limit_up": 0, "sell_limit_down": 0, "orphan_suspended": 0}
+    blocked = {"buy_limit_up": 0, "sell_limit_down": 0,
+               "orphan_suspended": 0, "brake_off": 0}
+
+    # 逆波动加权需要的 60 日波动率截面（只用历史，无前视）
+    vol60 = (close / close.shift(1) - 1.0).rolling(60, min_periods=40).std()
+
+    peak = 0.0
+    brake_active = False
 
     for d in dates:
         sig = exec_map.get(d)
@@ -85,9 +92,24 @@ def run(
             risk_on = True
             if regime_ok is not None:
                 risk_on = bool(regime_ok.get(d, True))
+
+            # 回撤刹车：以执行时点已知的净值回撤决定仓位乘数，不含未来信息
+            gross_mult = 1.0
+            if cfg.drawdown_brake > 0 and peak > 0:
+                last_eq = equity_vals[-1] if equity_vals else cfg.init_cash
+                dd = (peak - last_eq) / peak
+                if not brake_active and dd >= cfg.drawdown_brake:
+                    brake_active = True
+                elif brake_active and dd <= cfg.drawdown_recover:
+                    brake_active = False
+                if brake_active:
+                    gross_mult = cfg.drawdown_brake_scale
+
             cash = _execute(
                 d, sig, scores, open_, close, mask, can_buy, can_sell,
                 cash, shares, cfg, trades, blocked, weight_rows, risk_on,
+                vol_row=vol60.loc[d] if d in vol60.index else None,
+                gross_mult=gross_mult,
             )
         # 收盘估值
         cl = close.loc[d]
@@ -104,6 +126,8 @@ def run(
                 else:
                     val += 0.0
         equity_vals.append(val)
+        if val > peak:
+            peak = val
         holdings_log[d] = {c: sh for c, sh in shares.items() if sh > 0}
 
     raw_equity = pd.Series(equity_vals, index=dates, name="equity").astype("float64")
@@ -126,6 +150,7 @@ def run(
         "涨停未买入": blocked["buy_limit_up"],
         "跌停未卖出": blocked["sell_limit_down"],
         "闸门离场次数": blocked.get("regime_off", 0),
+        "刹车清仓次数": blocked.get("brake_off", 0),
         "期末持仓数": len([c for c, s in shares.items() if s > 0]),
         "期末现金占比": float(cash_ratio),
     }
@@ -143,14 +168,70 @@ def _flag(df: pd.DataFrame, d, c) -> bool:
     return bool(v) if pd.notna(v) else False
 
 
+def target_weights(
+    row: pd.Series,
+    target: list[str],
+    vol_row: pd.Series | None,
+    cfg: Config,
+) -> dict[str, float]:
+    """按配置的权重方案给出目标权重，并把总和归一到 1、单票不超过上限。"""
+    n = len(target)
+    if n == 0:
+        return {}
+    ordered = [c for c in row.sort_values(ascending=False).index if c in set(target)]
+    if not ordered:
+        return {}
+
+    if cfg.weighting == "inv_vol" and vol_row is not None:
+        raw = {}
+        for c in ordered:
+            v = vol_row.get(c, np.nan)
+            # 波动率缺失或异常时退回等权，避免整份组合失真
+            raw[c] = (1.0 / float(v)) if (pd.notna(v) and v and v > 1e-6) else np.nan
+        if all(pd.isna(x) for x in raw.values()):
+            raw = {c: 1.0 for c in ordered}
+    elif cfg.weighting == "rank_decay":
+        k = cfg.rank_decay
+        raw = {c: 1.0 / ((i + 1) ** k) for i, c in enumerate(ordered)}
+    else:
+        raw = {c: 1.0 for c in ordered}
+
+    s = np.nansum(list(raw.values()))
+    if not np.isfinite(s) or s <= 0:
+        raw = {c: 1.0 for c in ordered}
+        s = float(len(ordered))
+    w = {c: (float(v) / s if pd.notna(v) else 0.0) for c, v in raw.items()}
+
+    # 单票上限后重新归一，迭代几次即可收敛
+    for _ in range(4):
+        over = {c: v for c, v in w.items() if v > cfg.max_weight}
+        if not over:
+            break
+        for c in over:
+            w[c] = cfg.max_weight
+        rest = [c for c in w if c not in over]
+        free = 1.0 - cfg.max_weight * len(over)
+        tot = sum(w[c] for c in rest)
+        if tot <= 0 or free <= 0:
+            break
+        for c in rest:
+            w[c] = w[c] / tot * free
+    return w
+
+
 def _execute(
     d, sig, scores, open_, close, mask, can_buy, can_sell,
     cash, shares, cfg, trades, blocked, weight_rows, risk_on: bool = True,
+    vol_row: pd.Series | None = None, gross_mult: float = 1.0,
 ) -> float:
-    """在 d 日开盘执行 sig 日的信号，返回执行后的现金。"""
+    """在 d 日开盘执行 sig 日的信号，返回执行后的现金。
+
+    vol_row   : 当日的 60 日波动率截面，供逆波动加权使用
+    gross_mult: 仓位乘数（回撤刹车触发时小于 1 或为 0）
+    """
     op = open_.loc[d]
-    if not risk_on:
-        # 闸门关闭：清仓离场，本期不建新仓
+    if not risk_on or gross_mult <= 0:
+        # 闸门关闭或刹车归零：清仓离场，本期不建新仓
         for c in list(shares):
             px = op.get(c, np.nan)
             if pd.isna(px) or px <= 0 or not _flag(can_sell, d, c):
@@ -163,7 +244,10 @@ def _execute(
             cash += gross - fee
             trades.append({"date": d, "code": c, "side": "sell", "shares": sh,
                            "price": exec_px, "fee": fee})
-        blocked["regime_off"] = blocked.get("regime_off", 0) + 1
+        if not risk_on:
+            blocked["regime_off"] = blocked.get("regime_off", 0) + 1
+        else:
+            blocked["brake_off"] = blocked.get("brake_off", 0) + 1
         return cash
 
     row = scores.loc[sig].dropna()
@@ -195,7 +279,7 @@ def _execute(
     if equity_open <= 0:
         return cash
 
-    weight = min(1.0 / max(len(target_set), 1), cfg.max_weight)
+    wmap = target_weights(row, target, vol_row, cfg)
 
     # ---- 1. 卖出不在目标内的持仓（跌停/停牌则被迫继续持有） ----
     for c in list(shares):
@@ -220,7 +304,9 @@ def _execute(
         px = op.get(c, np.nan)
         if pd.isna(px) or px <= 0:
             continue
-        tgt_val = equity_open * weight
+        tgt_val = equity_open * wmap.get(c, 0.0) * gross_mult
+        if tgt_val <= 0:
+            continue
         cur_val = shares.get(c, 0.0) * float(px)
         if cur_val >= tgt_val * 0.7:
             continue  # 已接近目标权重

@@ -48,8 +48,13 @@ def build_signal(
     top_n: int = 20,
     current_holdings: list[str] | None = None,
     industry: dict[str, str] | None = None,
+    weights: dict[str, float] | None = None,
 ) -> dict:
-    """生成某个信号日的完整建议。"""
+    """生成某个信号日的完整建议。
+
+    weights 为按组合构建规则算出的目标权重；传入后买卖清单会给出建议仓位比例，
+    而不是让人误以为等权。
+    """
     if date not in scores.index:
         # 允许传入最近的一个信号日
         prior = scores.index[scores.index <= date]
@@ -70,6 +75,7 @@ def build_signal(
     for c in picks:
         pos_r, neg_r = factor_reasons(factors, date, c)
         px = close.at[date, c] if c in close.columns else np.nan
+        raw_w = (weights or {}).get(c)
         buys.append({
             "code": c,
             "name": names.get(c, c),
@@ -77,6 +83,7 @@ def build_signal(
             "percentile": round(float(pct[c]), 1),
             "price": round(float(px), 2) if pd.notna(px) else None,
             "industry": (industry or {}).get(c, ""),
+            "weight_pct": round(float(raw_w) * 100, 2) if raw_w else None,
             "reasons": pos_r,
             "risks": neg_r,
         })
@@ -108,16 +115,23 @@ def build_signal(
 
 def render_text(sig: dict) -> str:
     """把信号渲染成可读文本，方便命令行查看。"""
+    wname = {"inv_vol": "逆波动加权", "equal": "等权",
+             "rank_decay": "名次衰减加权"}.get(sig.get("weighting", ""), "按组合规则加权")
     lines = [f"信号日期：{sig.get('date')}", ""]
+    if sig.get("risk_on") is False:
+        lines.append(f"【闸门关闭】{sig.get('notice', '建议空仓观望，以下名单仅供观察')}")
+        lines.append("")
     buys = sig.get("buy") or []
     if not buys:
         lines.append("本期无满足条件的标的。")
         return "\n".join(lines)
-    lines.append(f"建议买入（{len(buys)} 只，等权）：")
+    lines.append(f"建议买入（{len(buys)} 只，{wname}）：")
     for i, b in enumerate(buys, 1):
         rs = "、".join(b["reasons"]) or "—"
+        w = b.get("weight_pct")
+        wtxt = f"仓位{w:5.2f}%" if w is not None else "仓位    —"
         lines.append(
-            f"  {i:2d}. {b['code']} {b['name']:<6s} 分位{b['percentile']:5.1f}%  "
+            f"  {i:2d}. {b['code']} {b['name']:<6s} 分位{b['percentile']:5.1f}%  {wtxt}  "
             f"参考价{b['price']}  逻辑：{rs}"
         )
     if sig.get("sell"):

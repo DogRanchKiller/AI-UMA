@@ -154,3 +154,80 @@ def test_max_drawdown_sign():
     eq = pd.Series([1.0, 1.2, 0.9, 1.1], index=pd.bdate_range("2024-01-01", periods=4))
     dd = mt.max_drawdown(eq)
     assert -0.26 < dd < -0.24, f"最大回撤算错: {dd}"
+
+
+# --------------------------------------------------------------------------- #
+# 权重方案与回撤刹车
+# --------------------------------------------------------------------------- #
+def _weights_for(cfg, vol=None, n=4):
+    row = pd.Series({f"c{i}": 1.0 - i * 0.1 for i in range(n)})
+    target = list(row.index)
+    vr = pd.Series(vol) if vol is not None else None
+    return bt.target_weights(row, target, vr, cfg)
+
+
+def test_equal_weighting_sums_to_one():
+    w = _weights_for(_cfg(max_weight=1.0))
+    assert abs(sum(w.values()) - 1.0) < 1e-9
+    assert all(abs(v - 0.25) < 1e-9 for v in w.values())
+
+
+def test_inv_vol_favours_low_volatility():
+    w = _weights_for(
+        _cfg(weighting="inv_vol", max_weight=1.0),
+        vol={"c0": 0.03, "c1": 0.01, "c2": 0.02, "c3": 0.04},
+    )
+    assert w["c1"] > w["c2"] > w["c0"] > w["c3"], f"逆波动权重排序错误: {w}"
+    assert abs(sum(w.values()) - 1.0) < 1e-9
+
+
+def test_rank_decay_weights_decrease_with_rank():
+    w = _weights_for(_cfg(weighting="rank_decay", rank_decay=1.0, max_weight=1.0))
+    vals = [w[c] for c in ["c0", "c1", "c2", "c3"]]
+    assert vals == sorted(vals, reverse=True)
+    assert abs(sum(vals) - 1.0) < 1e-9
+
+
+def test_max_weight_cap_respected_and_renormalised():
+    w = _weights_for(_cfg(max_weight=0.30), n=4)
+    assert max(w.values()) <= 0.30 + 1e-9
+    assert abs(sum(w.values()) - 1.0) < 1e-9
+
+
+def test_inv_vol_falls_back_when_vol_missing():
+    w = _weights_for(_cfg(weighting="inv_vol", max_weight=1.0),
+                     vol={"c0": None, "c1": None, "c2": None, "c3": None})
+    assert abs(sum(w.values()) - 1.0) < 1e-9
+    assert all(v > 0 for v in w.values())
+
+
+def test_drawdown_brake_reduces_exposure():
+    """触发刹车后应清仓观望，而不是一路持有到谷底。"""
+    idx = pd.bdate_range("2024-03-04", periods=5)
+    cols = ["sh600000", "sh600001"]
+    o = pd.DataFrame([[10, 20], [10, 20], [8, 20], [7, 20], [6, 20]],
+                     index=idx, columns=cols, dtype="float64")
+    mats = {"open": o, "close": o, "high": o, "low": o,
+            "volume": o * 0 + 1e6, "amount": o * 1e8}
+    mask = pd.DataFrame(True, index=idx, columns=cols)
+    cb, cs = uv.tradeable_at_open(o, o.shift(1), cols)
+    bench = pd.Series([3000.0] * 5, index=idx)
+
+    scores = pd.DataFrame(
+        [[0.9, 0.1], [0.9, 0.1], [0.9, 0.1], [0.9, 0.1], [np.nan, np.nan]],
+        index=idx, columns=cols,
+    )
+    cfg = _cfg(top_n=1, drawdown_brake=0.05, drawdown_brake_scale=0.0,
+               drawdown_recover=0.0, max_weight=1.0)
+    res = bt.run(scores, mats, mask, cb, cs, bench, cfg)
+    assert res.diagnostics["刹车清仓次数"] >= 1, "回撤应触发刹车"
+    assert res.equity.min() > 0
+
+
+def test_brake_off_by_default():
+    mats, mask, cb, cs, bench, idx, cols = _scenario([[10, 20], [10, 20], [10, 20]])
+    scores = pd.DataFrame(
+        [[0.9, 0.5], [np.nan, np.nan], [np.nan, np.nan]], index=idx, columns=cols
+    )
+    res = bt.run(scores, mats, mask, cb, cs, bench, _cfg())
+    assert res.diagnostics.get("刹车清仓次数", 0) == 0

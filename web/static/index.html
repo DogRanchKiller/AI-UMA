@@ -103,8 +103,12 @@ td.r,thead th.r{text-align:right}
 .rs.dn{border-color:color-mix(in srgb,var(--warn) 28%,var(--border));color:var(--warn)}
 
 /* ---------- KPI ---------- */
-.kpis{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border-soft)}
-.kpi{background:var(--surface);padding:var(--s4);display:flex;flex-direction:column;gap:var(--s1);min-width:0}
+.row-main{align-items:stretch}
+.row-main .panel{height:100%}
+.row-main .panel:last-child .panel-bd.flush{flex:1;display:flex;min-height:0}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border-soft);flex:1}
+.kpi{background:var(--surface);padding:var(--s4);display:flex;flex-direction:column;
+  justify-content:center;gap:var(--s1);min-width:0}
 .kpi .lbl{font-size:var(--t-xs);color:var(--meta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi .val{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:var(--t-2xl);font-weight:500;letter-spacing:-.02em;line-height:1.15}
 .kpi .val.sm{font-size:var(--t-xl)}
@@ -321,14 +325,16 @@ function renderBuys(sig){
     $("buyHint").textContent = sig.date ? `信号日 ${sig.date}` : "";
     return;
   }
+  const wName = {inv_vol:"逆波动加权", equal:"等权", rank_decay:"名次衰减加权"}[sig.weighting] || "等权";
   $("buyHint").textContent =
-    `信号日 ${sig.date} · ${buys.length} 只等权` + (riskOn ? "" : " · 闸门关闭");
+    `信号日 ${sig.date} · ${buys.length} 只 · ${wName}` + (riskOn ? "" : " · 闸门关闭");
 
   // 榜内相对强度：把入选名单的分数区间拉满，解决"全是 100%"的问题
   const pcts = buys.map(b => b.percentile ?? 0);
   const pMin = Math.min(...pcts), pMax = Math.max(...pcts);
   const span = pMax - pMin;
   const relOf = (p) => span > 1e-9 ? (p - pMin) / span * 100 : 50;
+  const hasWeight = buys.some(b => b.weight_pct != null);
 
   const rows = buys.map((b,i)=>`
     <tr>
@@ -336,6 +342,7 @@ function renderBuys(sig){
       <td><div class="nm">${b.name}</div><div class="code">${b.code}</div></td>
       <td>${spineHTML(relOf(b.percentile ?? 0))}</td>
       <td class="r"><span class="pct">${(b.percentile??0).toFixed(1)}%</span></td>
+      ${hasWeight ? `<td class="r num">${b.weight_pct!=null ? b.weight_pct.toFixed(2)+"%" : "—"}</td>` : ""}
       <td class="r num">${b.price!=null?b.price.toFixed(2):"—"}</td>
       <td><div class="reasons">${(b.reasons||[]).map(r=>`<span class="rs up">${r}</span>`).join("")}</div></td>
       <td><div class="reasons">${(b.risks||[]).slice(0,2).map(r=>`<span class="rs dn">${r}</span>`).join("")}</div></td>
@@ -343,6 +350,7 @@ function renderBuys(sig){
   host.innerHTML = gate + `<div class="tbl-wrap"><table>
     <thead><tr>
       <th></th><th>股票</th><th>榜内强度</th><th class="r">横截面分位</th>
+      ${hasWeight ? '<th class="r">建议仓位</th>' : ""}
       <th class="r">参考价</th><th>主要驱动因子</th><th>反向信号</th>
     </tr></thead><tbody>${rows}</tbody></table></div>`;
 }
@@ -473,11 +481,17 @@ function renderDiag(sm, trades, holdings){
     ["日均可选标的", u.avg_daily_tradable!=null ? `${u.avg_daily_tradable} 只` : "—"],
     ["因子数量", m.n_factors!=null ? `${m.n_factors} 个` : "—"],
     ["训练样本", m.n_train_rows!=null ? `${(m.n_train_rows/10000).toFixed(1)} 万行` : "—"],
+    ["持仓只数", sm.config?.top_n!=null ? `${sm.config.top_n} 只` : "—"],
+    ["权重方案", {inv_vol:"逆波动加权", equal:"等权", rank_decay:"名次衰减"}[sm.config?.weighting] || "—"],
+    ["闸门规则", sm.config?.regime_ma!=null
+        ? `MA${sm.config.regime_ma}` + (sm.config.regime_mode==="hysteresis"
+            ? ` 迟滞(${(sm.config.regime_exit*100).toFixed(0)}%)` : "")
+        : "—"],
     ["调仓次数", dg["执行次数"]!=null ? `${dg["执行次数"]} 次` : "—"],
     ["成交笔数", dg["成交笔数"]!=null ? `${dg["成交笔数"]} 笔` : "—"],
     ["涨停未买入", dg["涨停未买入"]!=null ? `${dg["涨停未买入"]} 次` : "—"],
     ["跌停未卖出", dg["跌停未卖出"]!=null ? `${dg["跌停未卖出"]} 次` : "—"],
-    ["年调仓次数", p["年调仓次数"]!=null ? `${p["年调仓次数"]} 次` : "—"],
+    ["闸门离场", dg["闸门离场次数"]!=null ? `${dg["闸门离场次数"]} 次` : "—"],
     ["年化单边换手", p["年化单边换手"]!=null ? fmtPct(p["年化单边换手"],0) : "—"],
     ["期末持仓", dg["期末持仓数"]!=null ? `${dg["期末持仓数"]} 只` : "—"],
     ["运行耗时", sm.run_seconds!=null ? `${sm.run_seconds} 秒` : "—"],

@@ -55,10 +55,24 @@ class Config:
     num_boost_round: int = 300
 
     # ---------- 组合 ----------
-    top_n: int = 20                     # 每期持仓只数
+    # top_n 是「集中度风险旋钮」而不是纯优化参数：实测 8~12 只的风险调整收益最好，
+    # 但个股特质风险显著上升（见 output/optimize_experiment.csv 与 README）。
+    top_n: int = 15                     # 每期持仓只数
     rebalance_every: int = 20           # 调仓周期（交易日）
     max_weight: float = 0.10            # 单票权重上限
     min_score_pct: float = 0.0          # 入选最低分位要求（0 = 不限制）
+
+    # 权重方案：equal=等权, inv_vol=逆波动率, rank_decay=按名次衰减
+    # 实测 inv_vol 在不牺牲收益的前提下降低回撤，故设为默认。
+    weighting: str = "inv_vol"
+    rank_decay: float = 1.0             # rank_decay 方案下第 k 名权重 ∝ 1/k^rank_decay
+
+    # ---------- 回撤刹车 ----------
+    # 实测无效甚至有害：本策略的 alpha 正是「暴跌后买入」，刹车恰好在最有优势时离场。
+    # 保留实现供研究，默认关闭。
+    drawdown_brake: float = 0.0         # 0 = 关闭
+    drawdown_brake_scale: float = 0.5
+    drawdown_recover: float = 0.05
 
     # ---------- 选股端风险约束（不改动模型打分） ----------
     # 实测：额外的流动性下限与自由落体过滤会把 alpha 的来源一起滤掉
@@ -75,8 +89,11 @@ class Config:
     neutralize_size: bool = False
     neutralize_vol: bool = False
     use_regime_filter: bool = True      # 启用市场状态闸门
+    regime_mode: str = "hysteresis"     # hysteresis=带迟滞（默认）, plain=纯均线穿越
     regime_ma: int = 60                 # 闸门均线周期
-    regime_buffer: float = 0.0          # 需高出均线的比例才入场
+    regime_buffer: float = 0.0          # plain 模式：需高出均线的比例才入场
+    regime_enter: float = 0.0           # hysteresis 模式：高于均线*(1+enter) 进场
+    regime_exit: float = -0.02          # hysteresis 模式：跌破均线*(1+exit) 离场
 
     # ---------- 交易成本 ----------
     commission: float = 0.00025         # 佣金，双边

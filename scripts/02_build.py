@@ -189,7 +189,25 @@ def build_pipeline(cfg: Config, use_cache: bool = True, top_n: int | None = None
     # 最新信号
     log.info("生成最新信号……")
     last = sc.index.max()
-    sig = sg.build_signal(sc, close, factors, names, last, top_n=cfg.top_n)
+    # 用与回测完全相同的权重规则算出建议仓位，避免界面把不等权说成等权
+    vol60 = (close / close.shift(1) - 1.0).rolling(60, min_periods=40).std()
+    live_weights: dict[str, float] = {}
+    if last in sc.index:
+        last_row = sc.loc[last].dropna()
+        if last in mask.index:
+            avail = mask.loc[last]
+            last_row = last_row[last_row.index.isin(
+                avail.index[avail.fillna(False).astype(bool)])]
+        if not last_row.empty:
+            picks = last_row.sort_values(ascending=False).head(cfg.top_n).index.tolist()
+            live_weights = bt.target_weights(
+                last_row, picks,
+                vol60.loc[last] if last in vol60.index else None, cfg,
+            )
+    sig = sg.build_signal(sc, close, factors, names, last, top_n=cfg.top_n,
+                          weights=live_weights)
+    sig["weighting"] = cfg.weighting
+    sig["top_n"] = cfg.top_n
     # 闸门状态：未入场时信号只作观察，不应直接照做
     if regime is not None:
         near = regime.reindex(regime.index[regime.index <= last])

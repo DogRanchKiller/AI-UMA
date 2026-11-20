@@ -125,3 +125,44 @@ def market_regime(benchmark: pd.Series, ma: int = 60, buffer: float = 0.0) -> pd
     b = benchmark.dropna()
     sma = b.rolling(ma, min_periods=max(10, ma // 3)).mean()
     return (b > sma * (1.0 + buffer)).reindex(benchmark.index).fillna(False)
+
+
+def market_regime_hysteresis(
+    benchmark: pd.Series, ma: int = 60, enter: float = 0.0, exit_: float = -0.02
+) -> pd.Series:
+    """带迟滞的闸门：高于均线*(1+enter) 才进场，跌破均线*(1+exit_) 才离场。
+
+    纯均线穿越在震荡市会反复出入场，把成本吃光。迟滞带显著降低这种撕扯。
+    """
+    b = benchmark.dropna()
+    sma = b.rolling(ma, min_periods=max(10, ma // 3)).mean()
+    up = (b > sma * (1.0 + enter)).to_numpy()
+    dn = (b < sma * (1.0 + exit_)).to_numpy()
+    out = np.zeros(len(b), dtype=bool)
+    state = False
+    for i in range(len(b)):
+        if not np.isfinite(sma.iloc[i]):
+            state = False
+        elif state and dn[i]:
+            state = False
+        elif not state and up[i]:
+            state = True
+        out[i] = state
+    return pd.Series(out, index=b.index).reindex(benchmark.index).fillna(False)
+
+
+def market_regime_breadth(
+    close: pd.DataFrame, ma: int = 60, threshold: float = 0.5, min_names: int = 200
+) -> pd.Series:
+    """市场宽度闸门：全市场站上均线的股票比例高于阈值时允许做多。
+
+    对小盘反转组合来说，宽度比指数均线更贴近实际风险来源——2024 年初的踩踏
+    里指数跌幅有限，但绝大多数个股同时破位。样本不足时保守判为关闭。
+    """
+    sma = close.rolling(ma, min_periods=max(10, ma // 3)).mean()
+    valid = close.notna() & sma.notna()
+    above = (close > sma) & valid
+    n = valid.sum(axis=1)
+    ratio = above.sum(axis=1) / n.replace(0, np.nan)
+    ok = (ratio > threshold) & (n >= min_names)
+    return ok.fillna(False)

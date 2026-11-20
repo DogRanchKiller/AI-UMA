@@ -119,3 +119,54 @@ def test_market_regime_buffer_requires_stronger_signal():
     weak = sl.market_regime(flat, ma=60, buffer=0.0)
     strong = sl.market_regime(flat, ma=60, buffer=0.10)
     assert weak.sum() >= strong.sum(), "缓冲越大，开放次数不应增加"
+
+
+# --------------------------------------------------------------------------- #
+# 迟滞闸门
+# --------------------------------------------------------------------------- #
+def test_hysteresis_switches_less_than_plain():
+    """来回震荡的行情里，迟滞闸门的状态翻转次数应明显少于纯均线穿越。"""
+    idx = pd.bdate_range("2023-01-02", periods=400)
+    rng = np.random.default_rng(2)
+    px = pd.Series(3000 + np.cumsum(rng.normal(0, 8, 400)), index=idx)
+    plain = sl.market_regime(px, ma=60)
+    hyst = sl.market_regime_hysteresis(px, ma=60, enter=0.0, exit_=-0.02)
+    flips_plain = int((plain.astype(int).diff().abs() == 1).sum())
+    flips_hyst = int((hyst.astype(int).diff().abs() == 1).sum())
+    assert flips_hyst <= flips_plain, f"迟滞翻转 {flips_hyst} 应不多于纯穿越 {flips_plain}"
+
+
+def test_hysteresis_follows_clear_trend():
+    idx = pd.bdate_range("2023-01-02", periods=200)
+    up = pd.Series(np.linspace(3000, 4200, 200), index=idx)
+    dn = pd.Series(np.linspace(4200, 3000, 200), index=idx)
+    assert bool(sl.market_regime_hysteresis(up, 60).iloc[-1]) is True
+    assert bool(sl.market_regime_hysteresis(dn, 60).iloc[-1]) is False
+
+
+def test_hysteresis_exit_band_delays_exit():
+    """退出阈值放宽后，持有状态不应更早结束。"""
+    idx = pd.bdate_range("2023-01-02", periods=300)
+    px = pd.Series(np.concatenate([np.linspace(3000, 3600, 150),
+                                   np.linspace(3600, 3400, 150)]), index=idx)
+    tight = sl.market_regime_hysteresis(px, 60, enter=0.0, exit_=0.0)
+    loose = sl.market_regime_hysteresis(px, 60, enter=0.0, exit_=-0.05)
+    assert loose.sum() >= tight.sum(), "更宽的退出带应持有更久"
+
+
+# --------------------------------------------------------------------------- #
+# 宽度闸门
+# --------------------------------------------------------------------------- #
+def test_breadth_regime_requires_min_names():
+    mats = _mats(n=120, m=10)
+    r = sl.market_regime_breadth(mats["close"], ma=60, threshold=0.5, min_names=200)
+    assert not r.any(), "样本不足时应保守判为关闭"
+
+
+def test_breadth_regime_opens_in_broad_uptrend():
+    idx = pd.bdate_range("2023-01-02", periods=150)
+    cols = [f"c{i}" for i in range(260)]
+    close = pd.DataFrame(np.linspace(10, 20, 150)[:, None].repeat(260, axis=1),
+                         index=idx, columns=cols)
+    r = sl.market_regime_breadth(close, ma=60, threshold=0.5, min_names=200)
+    assert bool(r.iloc[-1]) is True, "全市场齐涨时应开放"

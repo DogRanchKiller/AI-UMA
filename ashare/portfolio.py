@@ -42,6 +42,14 @@ def build_target_scores(
     # 3) 仓位闸门
     regime = None
     if cfg.use_regime_filter:
-        regime = sl.market_regime(benchmark, ma=cfg.regime_ma, buffer=cfg.regime_buffer)
+        if cfg.regime_mode == "hysteresis":
+            regime = sl.market_regime_hysteresis(
+                benchmark, ma=cfg.regime_ma,
+                enter=cfg.regime_enter, exit_=cfg.regime_exit,
+            )
+        else:
+            regime = sl.market_regime(
+                benchmark, ma=cfg.regime_ma, buffer=cfg.regime_buffer
+            )
 
     return out, regime
