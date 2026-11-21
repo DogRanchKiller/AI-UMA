@@ -52,10 +52,12 @@ def run(
     benchmark: pd.Series,
     cfg: Config,
     regime_ok: pd.Series | None = None,
+    industry: dict[str, str] | None = None,
 ) -> BacktestResult:
     """执行回测。scores 为宽表 date × code，仅包含调仓日。
 
     regime_ok 为市场状态闸门：该日给出 False 时清仓离场，不建新仓。
+    industry  为代码到行业名的映射，用于限制单一行业入选数量。
     """
     open_, close = mats["open"], mats["close"]
     dates = close.index
@@ -89,12 +91,16 @@ def run(
     for d in dates:
         sig = exec_map.get(d)
         if sig is not None:
-            risk_on = True
+            # regime_ok 可以是布尔（二值闸门）或 [0,1] 浮点（连续仓位系数）
+            exposure = 1.0
             if regime_ok is not None:
-                risk_on = bool(regime_ok.get(d, True))
+                v = regime_ok.get(d, 1.0)
+                exposure = float(v) if pd.notna(v) else 0.0
+                exposure = min(max(exposure, 0.0), 1.0)
+            risk_on = exposure > 1e-3
 
             # 回撤刹车：以执行时点已知的净值回撤决定仓位乘数，不含未来信息
-            gross_mult = 1.0
+            gross_mult = exposure
             if cfg.drawdown_brake > 0 and peak > 0:
                 last_eq = equity_vals[-1] if equity_vals else cfg.init_cash
                 dd = (peak - last_eq) / peak
@@ -103,13 +109,14 @@ def run(
                 elif brake_active and dd <= cfg.drawdown_recover:
                     brake_active = False
                 if brake_active:
-                    gross_mult = cfg.drawdown_brake_scale
+                    gross_mult = exposure * cfg.drawdown_brake_scale
 
             cash = _execute(
                 d, sig, scores, open_, close, mask, can_buy, can_sell,
                 cash, shares, cfg, trades, blocked, weight_rows, risk_on,
                 vol_row=vol60.loc[d] if d in vol60.index else None,
                 gross_mult=gross_mult,
+                industry=industry,
             )
         # 收盘估值
         cl = close.loc[d]
@@ -223,6 +230,7 @@ def _execute(
     d, sig, scores, open_, close, mask, can_buy, can_sell,
     cash, shares, cfg, trades, blocked, weight_rows, risk_on: bool = True,
     vol_row: pd.Series | None = None, gross_mult: float = 1.0,
+    industry: dict[str, str] | None = None,
 ) -> float:
     """在 d 日开盘执行 sig 日的信号，返回执行后的现金。
 
@@ -262,7 +270,31 @@ def _execute(
         return cash
 
     n_hold = max(1, min(cfg.top_n, len(row)))
-    top = row.sort_values(ascending=False).head(n_hold).index.tolist()
+    ranked = row.sort_values(ascending=False)
+
+    # 选股：按分数从高到低，可选限制单一行业的入选数量
+    if cfg.max_per_industry > 0 and industry:
+        top = []
+        per_ind: dict[str, int] = {}
+        for c in ranked.index:
+            ind = industry.get(c, "")
+            if ind and per_ind.get(ind, 0) >= cfg.max_per_industry:
+                continue
+            top.append(c)
+            if ind:
+                per_ind[ind] = per_ind.get(ind, 0) + 1
+            if len(top) >= n_hold:
+                break
+        # 行业分类缺失或过度稀薄时，宁可退回不限制也不要选不满
+        if len(top) < n_hold:
+            chosen = set(top)
+            for c in ranked.index:
+                if c not in chosen:
+                    top.append(c)
+                    if len(top) >= n_hold:
+                        break
+    else:
+        top = ranked.head(n_hold).index.tolist()
 
     # 换手缓冲：已持有的股票只要还排在前 top_n*1.5 内就继续持有，降低换手
     rank_all = row.rank(ascending=False)

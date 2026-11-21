@@ -166,3 +166,20 @@ def market_regime_breadth(
     ratio = above.sum(axis=1) / n.replace(0, np.nan)
     ok = (ratio > threshold) & (n >= min_names)
     return ok.fillna(False)
+
+
+def regime_exposure(
+    benchmark: pd.Series, ma: int = 60, band: float = 0.04
+) -> pd.Series:
+    """连续仓位系数：按基准偏离均线的程度平滑调节总仓位，取值 [0, 1]。
+
+    与二值闸门相比的好处是不必在 MA20/60/120 之间做 argmax——那种选择在样本内
+    噪声很大（实测 2024 年选错均线周期会把 27.5% 打成 11.0%）。这里只保留
+    "偏离趋势越远、仓位越满"这一个单调假设，参数敏感度低得多。
+    """
+    b = benchmark.dropna()
+    sma = b.rolling(ma, min_periods=max(10, ma // 3)).mean()
+    dev = (b / sma - 1.0).to_numpy(dtype="float64")
+    expo = np.clip((dev + band) / (2.0 * band), 0.0, 1.0)
+    expo[~np.isfinite(dev)] = 0.0
+    return pd.Series(expo, index=b.index).reindex(benchmark.index).fillna(0.0)

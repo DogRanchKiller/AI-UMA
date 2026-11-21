@@ -194,6 +194,46 @@ def to_tencent(code: str) -> str:
 
 
 # --------------------------------------------------------------------------- #
+# 行业分类
+# --------------------------------------------------------------------------- #
+def industry_map(cfg: Config, force: bool = False) -> dict[str, str]:
+    """返回 {腾讯风格代码: 行业名}。
+
+    数据源为 baostock 的证监会行业分类。注意这是**当前快照**而非历史分类，
+    个股历史上改行业的极少，但这一近似会带来轻微的前视偏差（见 README 局限）。
+    """
+    path = CACHE_DIR / "industry.csv"
+    if path.exists() and not force:
+        df = pd.read_csv(path, dtype={"code": str})
+    else:
+        import baostock as bs
+
+        bs.login()
+        rows: list[list[str]] = []
+        try:
+            rs = bs.query_stock_industry()
+            fields = rs.fields
+            while rs.next():
+                rows.append(rs.get_row_data())
+        finally:
+            bs.logout()
+        if not rows:
+            log.warning("行业分类获取失败，返回空映射")
+            return {}
+        df = pd.DataFrame(rows, columns=fields)
+        df = df.rename(columns={"code": "code_raw"})
+        df["code"] = df["code_raw"].map(to_tencent)
+        df["industry"] = df["industry"].astype(str).str.strip()
+        df = df[["code", "industry"]]
+        df.to_csv(path, index=False, encoding="utf-8-sig")
+        log.info("行业分类已缓存：%d 只", len(df))
+
+    blank = df["industry"].isin(["", "None", "nan"])
+    df = df[~blank]
+    return dict(zip(df["code"], df["industry"]))
+
+
+# --------------------------------------------------------------------------- #
 # 单只 K 线（前复权）
 # --------------------------------------------------------------------------- #
 def fetch_kline(

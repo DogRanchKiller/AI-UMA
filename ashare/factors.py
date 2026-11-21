@@ -54,6 +54,10 @@ FACTOR_META: dict[str, tuple[str, str]] = {
     "alpha_60": ("60日Alpha", "市场关联"),
     "rel_ret_20": ("20日相对基准", "市场关联"),
     "corr_bench_60": ("60日与基准相关性", "市场关联"),
+    "ind_rel_ret_20": ("行业相对20日收益", "行业内"),
+    "ind_rel_ret_5": ("行业相对5日收益", "行业内"),
+    "ind_rel_ret_60": ("行业相对60日收益", "行业内"),
+    "ind_rel_amount": ("行业相对成交额", "行业内"),
 }
 
 FACTOR_GROUPS = sorted({v[1] for v in FACTOR_META.values()})
@@ -120,9 +124,16 @@ def _streak(cond: pd.DataFrame) -> pd.DataFrame:
 
 
 def compute_factors(
-    mats: dict[str, pd.DataFrame], benchmark: pd.Series | None = None
+    mats: dict[str, pd.DataFrame],
+    benchmark: pd.Series | None = None,
+    industry: dict[str, str] | None = None,
 ) -> dict[str, pd.DataFrame]:
-    """计算全部因子，返回 {因子名: 宽表}。"""
+    """计算全部因子，返回 {因子名: 宽表}。
+
+    industry 提供时将额外生成「行业内相对强弱」因子：把个股收益减去所属行业的
+    同期中位收益，剥离行业 beta，只留下个股的特质部分。这类因子与全市场动量
+    相关性低，是真正独立的信息来源。
+    """
     close, open_, high, low = mats["close"], mats["open"], mats["high"], mats["low"]
     vol, amount = mats["volume"], mats["amount"]
 
@@ -230,6 +241,28 @@ def compute_factors(
         f["corr_bench_60"] = ret1.rolling(60, min_periods=40).corr(bret)
         te_core = ret1.sub(beta.mul(bret, axis=0))
         f["te_60"] = te_core.rolling(60, min_periods=40).std()
+
+    # ---------------- 行业内相对强弱 ----------------
+    if industry:
+        labels = pd.Series({c: industry[c] for c in close.columns if c in industry})
+        if labels.nunique() >= 2:
+            sub = close[labels.index]
+
+            def _ind_rel(wide: pd.DataFrame) -> pd.DataFrame:
+                """个股值减去所属行业当日中位数（用中位数抗极端值）。
+
+                pandas 3 已移除 groupby(axis=1)，这里转置后按行分组再转回来。
+                """
+                t = wide.T
+                med = t.groupby(labels).transform("median").T
+                med = med.reindex(index=wide.index, columns=wide.columns)
+                return (wide - med).astype("float32")
+
+            f["ind_rel_ret_20"] = _ind_rel(_pct(sub, 20))
+            f["ind_rel_ret_5"] = _ind_rel(_pct(sub, 5))
+            f["ind_rel_ret_60"] = _ind_rel(_pct(sub, 60))
+            amt20 = amount[labels.index].rolling(20, min_periods=15).mean()
+            f["ind_rel_amount"] = _ind_rel(np.log1p(amt20))
 
     # 统一裁掉不在元数据里的临时键，并转 float32
     out = {}

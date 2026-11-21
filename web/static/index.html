@@ -105,10 +105,32 @@ td.r,thead th.r{text-align:right}
 /* ---------- KPI ---------- */
 .row-main{align-items:stretch}
 .row-main .panel{height:100%}
-.row-main .panel:last-child .panel-bd.flush{flex:1;display:flex;min-height:0}
-.kpis{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border-soft);flex:1}
-.kpi{background:var(--surface);padding:var(--s4);display:flex;flex-direction:column;
-  justify-content:center;gap:var(--s1);min-width:0}
+.row-main .panel:last-child .panel-bd.flush{flex:1;display:flex;flex-direction:column;min-height:0}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border-soft);flex:0 0 auto}
+.kpi{background:var(--surface);padding:var(--s3) var(--s4);display:flex;flex-direction:column;
+  gap:2px;min-width:0}
+.kpi .val{font-size:var(--t-xl)}
+
+/* 分年度超额：把 KPI 面板的剩余空间用于展示稳健性证据 */
+.yearly{flex:1;min-height:0;display:flex;flex-direction:column;border-top:1px solid var(--border-soft)}
+.yearly-hd{
+  padding:var(--s2) var(--s4);font-size:var(--t-xs);color:var(--fg-2);
+  background:var(--surface-2);border-bottom:1px solid var(--border-soft);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.yearly-bd{flex:1;min-height:0;display:flex;flex-direction:column}
+.yearly table{width:100%;font-size:var(--t-sm);border-collapse:collapse}
+.yearly thead th{
+  padding:4px var(--s4);font-size:var(--t-xs);color:var(--meta);font-weight:400;
+  border-bottom:1px solid var(--border-soft);background:transparent;
+}
+.yearly td{padding:0 var(--s4);border-bottom:1px solid var(--border-soft);height:26px}
+.yearly tbody tr:last-child td{border-bottom:none}
+.yearly td:first-child,.yearly th:first-child{text-align:left;color:var(--fg-2)}
+.yearly tfoot td{
+  padding:6px var(--s4);background:var(--surface-2);font-weight:500;
+  border-top:1px solid var(--border);
+}
 .kpi .lbl{font-size:var(--t-xs);color:var(--meta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi .val{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:var(--t-2xl);font-weight:500;letter-spacing:-.02em;line-height:1.15}
 .kpi .val.sm{font-size:var(--t-xl)}
@@ -356,7 +378,7 @@ function renderBuys(sig){
 }
 
 /* ---------- KPI ---------- */
-function renderKPIs(sm){
+function renderKPIs(sm, eq){
   const p = sm.performance || {};
   const ic = sm.ic || {};
   const items = [
@@ -367,12 +389,60 @@ function renderKPIs(sm){
     {lbl:"IC 均值", val:fmtNum(ic["IC均值"],4), c:cls(ic["IC均值"]), note:"|IC|>0.03 算有信息"},
     {lbl:"ICIR", val:fmtNum(ic["ICIR"]), c:cls(ic["ICIR"]), note:"IC 稳定性"},
   ];
-  $("kpis").innerHTML = items.map(i=>`
+  let html = `<div class="kpis">${items.map(i=>`
     <div class="kpi"><div class="lbl">${i.lbl}</div>
-    <div class="val sm ${i.c}">${i.val}</div>
-    <div class="note">${i.note}</div></div>`).join("");
+    <div class="val ${i.c}">${i.val}</div>
+    <div class="note">${i.note}</div></div>`).join("")}</div>`;
+
+  // 分年度超额：剔除策略尚未开始交易的年份，避免出现"0% 策略 vs 大涨基准"的误导行
+  const yr = yearlyExcess(eq);
+  if(yr.length){
+    const pos = yr.filter(r=>r.ex>0).length;
+    const avg = yr.reduce((a,r)=>a+r.ex,0)/yr.length;
+    html += `<div class="yearly">
+      <div class="yearly-hd"><span>分年度超额</span><span>${pos}/${yr.length} 年为正</span></div>
+      <div class="yearly-bd"><table>
+        <thead><tr><th>年份</th><th class="r">策略</th><th class="r">基准</th><th class="r">超额</th></tr></thead>
+        <tbody>
+        ${yr.map(r=>`<tr>
+          <td>${r.year}</td>
+          <td class="r num ${cls(r.s)}">${(r.s*100).toFixed(1)}%</td>
+          <td class="r num" style="color:var(--meta)">${(r.b*100).toFixed(1)}%</td>
+          <td class="r num ${cls(r.ex)}">${(r.ex*100>0?"+":"")}${(r.ex*100).toFixed(1)}%</td>
+        </tr>`).join("")}
+        </tbody>
+        <tfoot><tr>
+          <td>平均</td>
+          <td class="r num" colspan="2" style="color:var(--meta)">${yr.length} 年</td>
+          <td class="r num ${cls(avg)}">${(avg*100>0?"+":"")}${(avg*100).toFixed(1)}%</td>
+        </tr></tfoot>
+      </table></div></div>`;
+  }
+  $("kpis").innerHTML = html;
   const u = sm.universe || {};
   $("perfRange").textContent = u.date_range ? `${u.date_range[0]} ~ ${u.date_range[1]}` : "";
+}
+
+function yearlyExcess(d){
+  if(!d || !d.dates || !d.dates.length) return [];
+  const out = [];
+  let prevE = null, prevB = null, cur = null;
+  for(let i=0;i<d.dates.length;i++){
+    const y = d.dates[i].slice(0,4);
+    const e = d.equity[i], b = d.benchmark[i];
+    if(cur === null || cur.year !== y){
+      if(cur) out.push(cur);
+      cur = {year:y, e0:prevE, b0:prevB, e1:e, b1:b};
+    }
+    cur.e1 = e;
+    if(b!=null) cur.b1 = b;
+    prevE = e;
+    if(b!=null) prevB = b;
+  }
+  if(cur) out.push(cur);
+  return out
+    .filter(r=>r.e0>0 && r.b0>0 && Math.abs(r.e1/r.e0-1) > 1e-6)
+    .map(r=>({year:r.year, s:r.e1/r.e0-1, b:r.b1/r.b0-1, ex:(r.e1/r.e0)-(r.b1/r.b0)}));
 }
 
 /* ---------- 图表 ---------- */
@@ -386,11 +456,15 @@ function renderEquity(d){
   const ch = ec("eqChart");
   ch.setOption({
     backgroundColor:"transparent",
-    grid:baseGrid({right:16,top:20,bottom:20}),
+    grid:baseGrid({left:10,right:14,top:20,bottom:30}),
     tooltip:{trigger:"axis",backgroundColor:"#0b0f15",borderColor:C.border,
       textStyle:{color:C.fg,fontSize:12,fontFamily:C.mono},
       axisPointer:{type:"cross",lineStyle:{color:C.meta,opacity:.4}}},
-    xAxis:Object.assign({type:"category",data:d.dates,boundaryGap:false},axisStyle()),
+    xAxis:Object.assign({
+      type:"category", data:d.dates, boundaryGap:false,
+      axisLabel:{color:C.meta,fontSize:11,fontFamily:C.mono,
+        hideOverlap:true, formatter:(v)=>String(v).slice(0,7)},
+    },axisStyle()),
     yAxis:[
       Object.assign({type:"value",scale:true,name:"净值",nameTextStyle:{color:C.meta,fontSize:11}},axisStyle()),
       Object.assign({type:"value",name:"回撤%",max:0,nameTextStyle:{color:C.meta,fontSize:11},
@@ -406,7 +480,10 @@ function renderEquity(d){
        lineStyle:{color:C.meta,width:1.5,type:"dashed"},z:2}
     ]
   });
-  $("eqHint").textContent = `${d.dates.length} 个数据点`;
+  // 报告实际交易起点，而不是数据起点（两者可能差一整年）
+  const firstTrade = d.equity.findIndex(v => Math.abs(v - 1) > 1e-6);
+  const start = firstTrade > 0 ? d.dates[firstTrade] : d.dates[0];
+  $("eqHint").textContent = `交易自 ${start} 起 · ${d.dates.length} 点`;
   return ch;
 }
 
@@ -535,7 +612,7 @@ async function boot(){
     ]);
 
     renderBuys(sig);
-    renderKPIs(sm);
+    renderKPIs(sm, eq);
 
     charts.push(renderEquity(eq));
     charts.push(renderIC(ic));

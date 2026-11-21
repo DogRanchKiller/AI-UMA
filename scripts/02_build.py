@@ -101,13 +101,26 @@ def build_pipeline(cfg: Config, use_cache: bool = True, top_n: int | None = None
     log.info("可交易标的日均 %d 只", int(mask.sum(axis=1).mean()))
 
     cache_f = CACHE_DIR / "factors.pkl"
-    if use_cache and cache_f.exists():
+    key_f = {"ind": bool(cfg.use_industry_factors), "v": 2}
+    key_fp = CACHE_DIR / "factors_key.json"
+    cache_ok = False
+    if use_cache and cache_f.exists() and key_fp.exists():
+        try:
+            cache_ok = json.loads(key_fp.read_text(encoding="utf-8")) == key_f
+        except Exception:  # noqa: BLE001
+            cache_ok = False
+    if cache_ok:
         factors = pickle.loads(cache_f.read_bytes())
         log.info("因子命中缓存")
     else:
-        factors = fc.compute_factors(mats, benchmark=bench)
+        industry = ds.industry_map(cfg) if cfg.use_industry_factors else {}
+        if industry:
+            log.info("行业映射 %d 只 / %d 个行业",
+                     len(industry), len(set(industry.values())))
+        factors = fc.compute_factors(mats, benchmark=bench, industry=industry or None)
         factors = fc.standardize_panel(factors)
         cache_f.write_bytes(pickle.dumps(factors))
+        key_fp.write_text(json.dumps(key_f), encoding="utf-8")
         log.info("因子计算完成：%d 个，耗时 %.0fs", len(factors), time.time() - t0)
 
     # 长表
@@ -162,15 +175,19 @@ def build_pipeline(cfg: Config, use_cache: bool = True, top_n: int | None = None
     # 组合构建：中性化 / 选股约束 / 仓位闸门
     sc, regime = po.build_target_scores(sc_raw, mats, mask, bench, cfg)
     sc_base, _ = po.build_target_scores(sc_base, mats, mask, bench, cfg)
+    industry = ds.industry_map(cfg)
 
     # 交易约束矩阵
     prev_close = close.shift(1)
     can_buy, can_sell = uv.tradeable_at_open(open_, prev_close, list(close.columns))
 
     # 回测
-    log.info("开始回测……闸门=%s 周期=%s", cfg.use_regime_filter, cfg.regime_ma)
-    res = bt.run(sc, mats, mask, can_buy, can_sell, bench, cfg, regime_ok=regime)
-    res_base = bt.run(sc_base, mats, mask, can_buy, can_sell, bench, cfg, regime_ok=regime)
+    log.info("开始回测……闸门=%s 周期=%s 行业上限=%s",
+             cfg.regime_mode, cfg.regime_ma, cfg.max_per_industry)
+    res = bt.run(sc, mats, mask, can_buy, can_sell, bench, cfg,
+                 regime_ok=regime, industry=industry)
+    res_base = bt.run(sc_base, mats, mask, can_buy, can_sell, bench, cfg,
+                      regime_ok=regime, industry=industry)
     # 裸信号对照：不加任何组合约束，用于说明约束层的实际价值
     res_raw = bt.run(sc_raw, mats, mask, can_buy, can_sell, bench, cfg)
     log.info("回测完成，耗时 %.0fs", time.time() - t0)
@@ -205,7 +222,7 @@ def build_pipeline(cfg: Config, use_cache: bool = True, top_n: int | None = None
                 vol60.loc[last] if last in vol60.index else None, cfg,
             )
     sig = sg.build_signal(sc, close, factors, names, last, top_n=cfg.top_n,
-                          weights=live_weights)
+                          weights=live_weights, industry=industry)
     sig["weighting"] = cfg.weighting
     sig["top_n"] = cfg.top_n
     # 闸门状态：未入场时信号只作观察，不应直接照做
@@ -249,7 +266,11 @@ def build_pipeline(cfg: Config, use_cache: bool = True, top_n: int | None = None
             "date_range": [str(close.index.min().date()), str(close.index.max().date())],
         },
         "model": {
-            "n_factors": len(fc.FACTOR_META),
+            # 用实际参与训练的因子数，而不是元数据里声明的数量——
+            # 行业因子默认关闭时不参与计算，声明数会虚报。
+            "n_factors": len(factors),
+            "n_factors_declared": len(fc.FACTOR_META),
+            "use_industry_factors": bool(cfg.use_industry_factors),
             "n_train_rows": int(len(X)),
             "n_signals": int(len(preds["date"].unique())),
             "last_signal_date": str(last.date()),

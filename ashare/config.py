@@ -34,6 +34,10 @@ class Config:
     # ---------- 因子 / 标签 ----------
     label_horizon: int = 10             # 预测未来 N 个交易日超额收益
     warmup_days: int = 260              # 因子预热期（最长回看窗口）
+    # 行业内相对强弱因子。实测**有害**：同一配置下 7 年里有 5 年变差
+    # （年化 9.96%→6.37%）。它们与已有的 ret_20 等高度共线，加入后只是把信号
+    # 拆散到相关特征上、放大了打分尾部的方差，而组合只取尾部。默认关闭。
+    use_industry_factors: bool = False
 
     # ---------- 模型 ----------
     train_days: int = 750               # 滚动训练窗口（交易日）
@@ -67,6 +71,10 @@ class Config:
     weighting: str = "inv_vol"
     rank_decay: float = 1.0             # rank_decay 方案下第 k 名权重 ∝ 1/k^rank_decay
 
+    # 行业约束：单一行业最多入选几只（0 = 不限制）
+    # 用于压制组合在单一产业链上的集中，是风格暴露的主要来源之一。
+    max_per_industry: int = 0
+
     # ---------- 回撤刹车 ----------
     # 实测无效甚至有害：本策略的 alpha 正是「暴跌后买入」，刹车恰好在最有优势时离场。
     # 保留实现供研究，默认关闭。
@@ -89,11 +97,12 @@ class Config:
     neutralize_size: bool = False
     neutralize_vol: bool = False
     use_regime_filter: bool = True      # 启用市场状态闸门
-    regime_mode: str = "hysteresis"     # hysteresis=带迟滞（默认）, plain=纯均线穿越
+    regime_mode: str = "hysteresis"     # hysteresis=带迟滞, plain=纯均线, scaled=连续仓位
     regime_ma: int = 60                 # 闸门均线周期
     regime_buffer: float = 0.0          # plain 模式：需高出均线的比例才入场
     regime_enter: float = 0.0           # hysteresis 模式：高于均线*(1+enter) 进场
     regime_exit: float = -0.02          # hysteresis 模式：跌破均线*(1+exit) 离场
+    regime_band: float = 0.04           # scaled 模式：偏离均线 ±band 对应仓位 0→100%
 
     # ---------- 交易成本 ----------
     commission: float = 0.00025         # 佣金，双边

@@ -42,7 +42,11 @@ def build_target_scores(
     # 3) 仓位闸门
     regime = None
     if cfg.use_regime_filter:
-        if cfg.regime_mode == "hysteresis":
+        if cfg.regime_mode == "scaled":
+            regime = sl.regime_exposure(
+                benchmark, ma=cfg.regime_ma, band=cfg.regime_band
+            )
+        elif cfg.regime_mode == "hysteresis":
             regime = sl.market_regime_hysteresis(
                 benchmark, ma=cfg.regime_ma,
                 enter=cfg.regime_enter, exit_=cfg.regime_exit,

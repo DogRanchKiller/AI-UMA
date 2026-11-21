@@ -170,3 +170,37 @@ def test_breadth_regime_opens_in_broad_uptrend():
                          index=idx, columns=cols)
     r = sl.market_regime_breadth(close, ma=60, threshold=0.5, min_names=200)
     assert bool(r.iloc[-1]) is True, "全市场齐涨时应开放"
+
+
+# --------------------------------------------------------------------------- #
+# 连续仓位系数
+# --------------------------------------------------------------------------- #
+def test_regime_exposure_bounded_and_monotone():
+    idx = pd.bdate_range("2023-01-02", periods=200)
+    up = pd.Series(np.linspace(3000, 4200, 200), index=idx)
+    dn = pd.Series(np.linspace(4200, 3000, 200), index=idx)
+
+    e_up = sl.regime_exposure(up, ma=60, band=0.04)
+    e_dn = sl.regime_exposure(dn, ma=60, band=0.04)
+
+    assert e_up.min() >= 0 and e_up.max() <= 1
+    assert e_dn.min() >= 0 and e_dn.max() <= 1
+    assert e_up.iloc[-1] > 0.99, "单边上涨应接近满仓"
+    assert e_dn.iloc[-1] < 0.01, "单边下跌应接近空仓"
+
+
+def test_regime_exposure_wider_band_means_gentler():
+    idx = pd.bdate_range("2023-01-02", periods=300)
+    px = pd.Series(3000 + np.cumsum(np.random.default_rng(9).normal(0, 10, 300)), index=idx)
+    narrow = sl.regime_exposure(px, ma=60, band=0.02)
+    wide = sl.regime_exposure(px, ma=60, band=0.10)
+    assert narrow.std() >= wide.std(), "带宽越窄，仓位变化越剧烈"
+
+
+def test_regime_exposure_never_nan():
+    idx = pd.bdate_range("2023-01-02", periods=120)
+    px = pd.Series(np.linspace(3000, 3300, 120), index=idx)
+    e = sl.regime_exposure(px, ma=60, band=0.04)
+    assert e.notna().all()
+    # 均线未形成时保守判为 0 仓位
+    assert e.iloc[0] == 0.0

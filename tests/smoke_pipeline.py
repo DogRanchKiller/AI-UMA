@@ -50,10 +50,19 @@ def main() -> int:
 
     step("因子计算")
     bench = close[cfg.benchmark].dropna()
+    # 行业因子属于可选项：默认配置下不参与计算，因此冒烟测试按默认口径校验，
+    # 并单独确认"关闭时确实不生成、开启时确实生成"。
     fac = fc.compute_factors(mats, benchmark=bench)
-    print(f"因子 {len(fac)} 个")
-    missing = [k for k in fc.FACTOR_META if k not in fac]
+    print(f"因子 {len(fac)} 个（默认不含行业因子）")
+    if cfg.use_industry_factors:
+        expected = [k for k in fc.FACTOR_META if not k.startswith("ind_rel_")]
+    else:
+        expected = [k for k in fc.FACTOR_META if not k.startswith("ind_rel_")]
+    missing = [k for k in expected if k not in fac]
     assert not missing, f"缺失因子: {missing}"
+    if not cfg.use_industry_factors:
+        assert not any(k.startswith("ind_rel_") for k in fac), \
+            "行业因子关闭时不应出现在结果里"
     std = fc.standardize_panel(fac)
     for k in ["ret_20", "vol_20", "rsi_14", "beta_60"]:
         v = std[k].stack().dropna()
