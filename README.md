@@ -163,7 +163,7 @@ ashare/
   metrics.py      绩效指标：年化、夏普、回撤、IC、分层、换手
   signals.py      每日买卖信号、建议仓位与个股因子归因
 web/app.py        FastAPI 接口
-web/static/       深色终端风格看板（ECharts，本地内置无需外网）
+web/static/       深色终端风格看板（ECharts，本地内置无需外网；第三方库来源与哈希见 web/static/VENDOR.md）
 ```
 
 数据流：`data/raw/*.csv`（逐股缓存）→ `data/cache/factors.pkl`（1.6GB 因子宽表）

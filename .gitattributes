@@ -1,3 +1,7 @@
 # 证据与样本按原始字节入库（清单与测试会核对 SHA-256），不做换行转换。
 tests/fixtures/** -text
 data/m2/** -text
+
+# 第三方前端库按原样入库：哈希写死在 web/static/VENDOR.md，检出后必须字节不变。
+web/static/*.min.js -text
+web/static/*.LICENSE.txt -text
