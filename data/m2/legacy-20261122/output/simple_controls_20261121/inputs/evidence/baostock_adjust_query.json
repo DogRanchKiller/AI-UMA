@@ -1,0 +1,9 @@
+{
+  "retrieved_at": "2026-11-21T14:56:46+08:00",
+  "client": "baostock 0.9.4",
+  "function": "query_adjust_factor",
+  "code": "sh.510300",
+  "start_date": "2018-01-01",
+  "end_date": "2026-11-20",
+  "purpose": "Only to corroborate dates and magnitude of corporate actions; never used as traded prices."
+}

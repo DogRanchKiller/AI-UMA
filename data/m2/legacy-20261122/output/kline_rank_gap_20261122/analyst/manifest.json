@@ -1,0 +1,35 @@
+{
+  "original_manifest_sha256": "c67bc68c9990a158129c7a16f9b891f8bf873d2f3c1d5e581433b968edba7c2a",
+  "source_pool_sha256": "248ffae9ba117c5aa4fc7ceb1bcf78a5ac2e99eb4ff7fed78988b8b7dd0f8d82",
+  "source_quote_index_sha256": "8e0f0a17c95539e78708ca248d7af7cf28715ed7e5fa42f45937c8ee27b12993",
+  "source_inputs": {
+    "scripts/11_daily_watch.py": "217cae8200a4cd171ac762fdfc9ade5f89b785c952cb9a554a54d0ad8f6ec009",
+    "output/simple_controls_20261121/results/stock_cache_sha256.csv": "7cb27d3894f1f037812af55e24c613d3054daebdd5bdda810a99f9176d63a86a",
+    "output/preds.csv": "6e559ad94ee75fe6e671e74a2b4924edf30ae211a2309263f259422914892072",
+    "output/config_used.json": "d8e7dc43a1a8d1092ed52bad33bac4acf5bba7942bfedd57295f7c17ad0238be",
+    "data/cache/master_list.csv": "2c3f05e2cb332e002ea21ccd6080beb8638751a9fbca1fa5521d345880511f7c",
+    "output/trend_pairs_20261121/比较口径.md": "2e2adc252ccba7b7aa256f257cb2ce7640540f8ad814a4fd9ac91e85b9c1ddfd",
+    "ashare/selection.py": "0590286e58f713c5b4428d19186b65abd92887e49ae0edf637c5eccc0a6ff23a",
+    "ashare/universe.py": "4499686f7e8e0c8c365b0d83315ac587550a042b7f5c70656e3271051d73369e",
+    "output/kline_volume_20261122/比较口径.md": "69ca2ac04ffd2bcc3233b8e8d19e91f3462e65fdc8c2cd6c691b83b62a3ad9f9",
+    "output/trend_pairs_20261121/results/manifest.json": "7577dc3d89d877f1bf4bad2a3e1bdd0708b4b991a5ed1e4f5fabf520d7f13036",
+    "scripts/12_trend_pairs.py": "afc28c1b65598be840096067b5bdeab3d295440947cf32e1205e3856ef5d1778",
+    "output/trend_pairs_20261121/results/pool.csv": "bf6b66e4683ecaa205996765cc18ae432086eaf41117c7004b9d7f596185be48"
+  },
+  "research_runner_sha256": "3ac49f4ea0fc50b26f55d3a5408897887b349e44b9830c965002eadf53ef5301",
+  "analysis_script_sha256": "9fbb0223ff01d209c54341ec02f2ef2813a8df97d710a95a45f65b59d6c97d1a",
+  "out_sha256": {
+    "daily.csv": "9a8ec448ab8ebbf7fb78de9deaff553df5d496239e527dde6e0d92dc44768a81",
+    "pair_endpoints.csv": "d6ac43eb8a6cfb9d138340219088281917c97d7338546f4732abf13fe9225b40",
+    "plan.csv": "9a8cc68ecf7ca65f556baa3758d5bdb38a1678adba6b0cb509cee2a7a19ace77",
+    "plan_dates.csv": "a727f805fdb54277839ef0ec5e9f2075ebdb2442b6f3486c5b3c4421325dcc76",
+    "plan_lock.json": "485ba412212fe925f15656755196a5e18d32df12d372db580bfce81480f5e65a",
+    "quotes_used.csv": "5c89de1aebb01991c61928a45d7ef93fa5ea1d31b2400a38ffe721c194fefb84",
+    "summary.csv": "3d2a6e68d363d9107a740deef085636f6221d339231c352243bf0f74f8a9eb0d"
+  },
+  "block": 3,
+  "draws": 10000,
+  "seed": 20261121,
+  "pandas": "3.0.6",
+  "numpy": "2.5.4"
+}

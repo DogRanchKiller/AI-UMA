@@ -1,0 +1,21 @@
+{
+  "predictions": 242399,
+  "prediction_dates": 72,
+  "first_signal": "2021-01-21",
+  "first_execution": "2021-01-22",
+  "last_mark": "2026-11-20",
+  "gate_on": 38,
+  "executions": 71,
+  "tradable_days": 1411,
+  "missing_ret20_executable": 317,
+  "sha256": {
+    "preds.csv": "6e559ad94ee75fe6e671e74a2b4924edf30ae211a2309263f259422914892072",
+    "config_used.json": "d8e7dc43a1a8d1092ed52bad33bac4acf5bba7942bfedd57295f7c17ad0238be",
+    "raw.csv": "ff45a4063e679ee150608698a79a065abc76fc167e8959991b5640acd1ab9a47",
+    "dividends.csv": "c92c976ea33e47ddea7ba288cae733bb58c9ea9286b08c92598348428d64d3ab",
+    "master_list.csv": "2c3f05e2cb332e002ea21ccd6080beb8638751a9fbca1fa5521d345880511f7c",
+    "sh000300.csv": "d6b3ef74b6a7fac295174aa21a1ded6d32823cb7d8e3114156271a227e3d2c98",
+    "backtest.py": "e85e71e7cf92892f778835e2f31d193598ec061b1289459cc6b00d067d9a2901",
+    "10_simple_controls.py": "08f1f8e18febacd29a7eb6689d7458a2cfd65f6824597ce82dd415934dce6364"
+  }
+}

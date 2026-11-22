@@ -1,0 +1,75 @@
+{
+  "asof": "2026-11-22T06:21:40.565026+08:00",
+  "owner": "data/task-5",
+  "state": "stage_handoff_only_no_active_worker_no_READY",
+  "counts": {
+    "bars": {
+      "verified": 53,
+      "failed": 19,
+      "pending": 5154
+    },
+    "equity": {
+      "queried": 1054,
+      "empty": 491,
+      "pending": 45147
+    }
+  },
+  "logs": {
+    "bars": [
+      {
+        "path": "data/m2/acquisition-20261122/verified-acquisition-v2/bars-20261122T061347310997.ndjson",
+        "sha256": "1d05a8188694400219daea7fbec30a14981d001ab849cfd0b8646f6946a67f51",
+        "last": "2026-11-22T06:16:34.592512+08:00",
+        "attempts": 61
+      },
+      {
+        "path": "data/m2/acquisition-20261122/verified-acquisition-v2/bars-20261122T062029328283.ndjson",
+        "sha256": "682fe325567635073bb8c6a259197569424d72963addf42f66c3f641b41a3794",
+        "last": "2026-11-22T06:20:56.836223+08:00",
+        "attempts": 72
+      }
+    ],
+    "equity": [
+      {
+        "path": "data/m2/acquisition-20261122/grid-20261122T060943075224.ndjson",
+        "sha256": "206bba7a7c09f0a21d318cd646414a3739884f7f6dd4d30178bf714b34066b52",
+        "last": "2026-11-22T06:16:36.483360+08:00",
+        "attempts": 1505
+      },
+      {
+        "path": "data/m2/acquisition-20261122/verified-acquisition-v2/grid-20261122T062029249775.ndjson",
+        "sha256": "f5785edb6022a063c44f2efe13e3c7544a2a51b439d5e2aab776ea7d7d1be678",
+        "last": "2026-11-22T06:20:44.380580+08:00",
+        "attempts": 1545
+      }
+    ]
+  },
+  "old_output_entries": 143,
+  "old_output_bytes": 1995704404,
+  "legacy_manifest_sha256": "9cb5ea7cc533e0db22e7c6e491f60db27c8acd1a3bf989e72b4ad7574c5af2ad",
+  "old_directory_sha256": "1dd9b740e857337394d51a34d278c52ca8cfbb547c7641eba2fe4ba1bc2f57d6",
+  "sdk_packages": 72,
+  "resume_sha256": "a4170c50b9f79501b1771d4de45e48773c62fd082e7d8682be7662ead4520ff2",
+  "evidence_11day_sha256": "5e04359043e668c2fffff6d056f3ba569edf18dd88e2a75e5ad640400c7e22ed",
+  "jobs": {
+    "bars": {
+      "initial": "pwsh-6f840e6aab29455f",
+      "initial_exit": "unknown; no matching process or job handle",
+      "resumed": "pwsh-7142fa7284fe4f9d",
+      "exit": 10,
+      "pid": 45100
+    },
+    "equity": {
+      "initial": "pwsh-5ce8e91c633e430d",
+      "initial_exit": "unknown; no matching process or job handle",
+      "resumed": "pwsh-4bf5a66e6fa14d37",
+      "exit": 10,
+      "pid": 54980
+    }
+  },
+  "coverage_hashes": {
+    "bars-coverage.csv": "4e104a1ecb3398c5bb4c6effb6d10af28ff1cd69a6622d83cdf512baf465493b",
+    "equity-coverage.csv": "6d8a81f116390239c70210edda8b6cec7a9ebc9f8a57f4237d5b3af03df2591f"
+  },
+  "ready": false
+}

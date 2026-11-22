@@ -1,0 +1,16 @@
+[
+  {
+    "announcement_date": "2019-12-05",
+    "file": "evidence/notice_2019-12-05.pdf",
+    "url": "https://www.sse.com.cn/disclosure/fund/announcement/c/2019-12-05/510300_20191205_1.pdf",
+    "http_date": "Sat, 21 Nov 2026 06:53:25 GMT",
+    "retrieved_at": "2026-11-21T14:53:26+08:00"
+  },
+  {
+    "announcement_date": "2019-01-10",
+    "file": "evidence/sse_notice_2019-01-10.pdf",
+    "url": "https://www.sse.com.cn/disclosure/fund/announcement/c/2019-01-10/510300_20190110_1.pdf",
+    "http_date": "Sat, 21 Nov 2026 06:53:26 GMT",
+    "retrieved_at": "2026-11-21T14:53:26+08:00"
+  }
+]

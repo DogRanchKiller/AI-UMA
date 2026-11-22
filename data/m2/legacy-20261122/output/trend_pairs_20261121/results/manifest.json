@@ -1,0 +1,31 @@
+{
+  "input_sha256": {
+    "scripts/11_daily_watch.py": "217cae8200a4cd171ac762fdfc9ade5f89b785c952cb9a554a54d0ad8f6ec009",
+    "output/simple_controls_20261121/results/stock_cache_sha256.csv": "7cb27d3894f1f037812af55e24c613d3054daebdd5bdda810a99f9176d63a86a",
+    "output/preds.csv": "6e559ad94ee75fe6e671e74a2b4924edf30ae211a2309263f259422914892072",
+    "output/config_used.json": "d8e7dc43a1a8d1092ed52bad33bac4acf5bba7942bfedd57295f7c17ad0238be",
+    "data/cache/master_list.csv": "2c3f05e2cb332e002ea21ccd6080beb8638751a9fbca1fa5521d345880511f7c",
+    "output/trend_pairs_20261121/比较口径.md": "2e2adc252ccba7b7aa256f257cb2ce7640540f8ad814a4fd9ac91e85b9c1ddfd",
+    "ashare/selection.py": "0590286e58f713c5b4428d19186b65abd92887e49ae0edf637c5eccc0a6ff23a",
+    "ashare/universe.py": "4499686f7e8e0c8c365b0d83315ac587550a042b7f5c70656e3271051d73369e"
+  },
+  "runner_sha256": "afc28c1b65598be840096067b5bdeab3d295440947cf32e1205e3856ef5d1778",
+  "numpy": "2.5.4",
+  "pandas": "3.0.6",
+  "checked_quote_files": 3774,
+  "quote_hash_index": "output/simple_controls_20261121/results/stock_cache_sha256.csv",
+  "predictions": 242399,
+  "dates": 72,
+  "last_close": "2026-11-20",
+  "rank_caliper": 5,
+  "holding_intervals": 10,
+  "bootstrap_seed": 20261121,
+  "bootstrap_block": 3,
+  "bootstrap_draws": 10000,
+  "output_sha256": {
+    "pool.csv": "bf6b66e4683ecaa205996765cc18ae432086eaf41117c7004b9d7f596185be48",
+    "pairs.csv": "09bc93ca86ef341bf583fc95d8565845304a76254c38a4dbf58b91edd19be114",
+    "dates.csv": "6cda985d7bd24a365bd1ead22ef5b73e34ca70b3ce4d3a132a5cea8cb3a72148",
+    "summary.csv": "33580c5441fd9153f4ffa9621903c7d8cad13fbc4a91c613752005c8506cede6"
+  }
+}

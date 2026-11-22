@@ -1,6 +1,25 @@
 # 生成数据与产物（体积大，可由脚本重建）
-data/
-output/
+/data/*
+/output/
+
+# 例外：M2 冻结证据入库（scripts/14_m2_rebuild.py 按哈希读取）
+!/data/m2/
+data/m2/runs/
+data/m2/**/runtime/
+# 旧版产物：只留清单与 14_m2_rebuild 钉住的 preds.csv，排除大体积重复副本
+data/m2/legacy-20261122/output/**/*.pkl
+data/m2/legacy-20261122/output/preds_*.csv
+data/m2/legacy-20261122/output/ext_ab_*/preds.csv
+# v1 采集的批量原始行情已被 verified-acquisition-v2 取代（保留回执与哈希）
+data/m2/acquisition-20261122/raw/
+data/m2/acquisition-20261122/sdk-raw/
+data/m2/acquisition-20261122/legacy-dates.csv.gz
+
+# 本地杂项
+.agent-teams/
+_p3.py
+BaoStock-*.eml
+BaoStock-*.zip
 
 # Python
 __pycache__/

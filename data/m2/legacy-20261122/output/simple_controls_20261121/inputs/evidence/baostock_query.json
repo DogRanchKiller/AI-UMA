@@ -1,0 +1,18 @@
+{
+  "retrieved_at": "2026-11-21T14:51:42+08:00",
+  "client_version": "0.9.4",
+  "client": "baostock",
+  "code": "sh.510300",
+  "start_date": "2019-01-01",
+  "end_date": "2026-11-20",
+  "kline_args": {
+    "function": "query_history_k_data_plus",
+    "fields": "date,code,open,high,low,close,volume,amount,adjustflag,tradestatus",
+    "frequency": "d",
+    "adjustflag": "3"
+  },
+  "calendar": "query_trade_dates",
+  "identity": "query_stock_basic",
+  "documentation_url": "https://www.baostock.com/mainContent?file=stockKData.md",
+  "session_login": "success"
+}

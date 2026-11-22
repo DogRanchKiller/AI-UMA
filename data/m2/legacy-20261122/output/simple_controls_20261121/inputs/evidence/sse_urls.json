@@ -1,0 +1,18 @@
+[
+  {
+    "file": "evidence/sse_dayk_510300.json",
+    "url": "https://yunhq.sse.com.cn:32042/v1/sh1/dayk/510300?select=date,open,high,low,close,volume,amount&begin=20190101&end=20261120",
+    "http_date": "Sat, 21 Nov 2026 06:54:05 GMT",
+    "http_status": 200,
+    "retrieved_at": "2026-11-21T14:54:05+08:00",
+    "referer": "https://www.sse.com.cn/"
+  },
+  {
+    "file": "evidence/sse_snap_510300.json",
+    "url": "https://yunhq.sse.com.cn:32042/v1/sh1/snap/510300?select=name,last,open,high,low,volume,amount",
+    "http_date": "Sat, 21 Nov 2026 06:54:05 GMT",
+    "http_status": 200,
+    "retrieved_at": "2026-11-21T14:54:06+08:00",
+    "referer": "https://www.sse.com.cn/"
+  }
+]

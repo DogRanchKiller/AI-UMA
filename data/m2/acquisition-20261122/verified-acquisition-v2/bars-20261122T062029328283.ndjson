@@ -1,0 +1,72 @@
+{"at": "2026-11-22T06:20:29.379811+08:00", "code": "sh000001", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:29.405218+08:00", "code": "sh000300", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:29.446000+08:00", "code": "sh000852", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:29.486634+08:00", "code": "sh000905", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:29.513833+08:00", "code": "sh600000", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:29.541449+08:00", "code": "sh600004", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:29.557190+08:00", "code": "sh600006", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:29.598941+08:00", "code": "sh600007", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:29.637907+08:00", "code": "sh600008", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:29.661502+08:00", "code": "sh600009", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:29.705353+08:00", "code": "sh600010", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:29.747223+08:00", "code": "sh600011", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:29.769377+08:00", "code": "sh600012", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:29.812418+08:00", "code": "sh600015", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:29.857591+08:00", "code": "sh600016", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:29.901096+08:00", "code": "sh600017", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:29.943094+08:00", "code": "sh600018", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:29.988607+08:00", "code": "sh600019", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.031767+08:00", "code": "sh600020", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.072770+08:00", "code": "sh600021", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.137107+08:00", "code": "sh600022", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.176603+08:00", "code": "sh600023", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.218063+08:00", "code": "sh600025", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.259703+08:00", "code": "sh600026", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.281290+08:00", "code": "sh600027", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:30.321537+08:00", "code": "sh600028", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.356615+08:00", "code": "sh600029", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.378337+08:00", "code": "sh600030", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:30.421778+08:00", "code": "sh600031", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.459443+08:00", "code": "sh600032", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.499433+08:00", "code": "sh600033", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.538272+08:00", "code": "sh600035", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.581671+08:00", "code": "sh600036", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.623275+08:00", "code": "sh600037", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.644230+08:00", "code": "sh600038", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:30.666014+08:00", "code": "sh600039", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:30.707418+08:00", "code": "sh600048", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.752245+08:00", "code": "sh600050", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.792654+08:00", "code": "sh600051", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.835638+08:00", "code": "sh600052", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.856285+08:00", "code": "sh600053", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:30.901003+08:00", "code": "sh600054", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.943236+08:00", "code": "sh600055", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:30.986433+08:00", "code": "sh600056", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:31.030539+08:00", "code": "sh600057", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:31.051666+08:00", "code": "sh600058", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:31.123884+08:00", "code": "sh600059", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:31.173170+08:00", "code": "sh600060", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:31.221189+08:00", "code": "sh600061", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:31.303935+08:00", "code": "sh600062", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:31.337264+08:00", "code": "sh600063", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:31.391566+08:00", "code": "sh600064", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:31.426212+08:00", "code": "sh600066", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:31.498720+08:00", "code": "sh600067", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:31.562396+08:00", "code": "sh600071", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:31.598993+08:00", "code": "sh600072", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:31.648141+08:00", "code": "sh600073", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:31.701106+08:00", "code": "sh600075", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:31.754358+08:00", "code": "sh600076", "attempt": 1, "status": "reverified", "error": null}
+{"at": "2026-11-22T06:20:31.786266+08:00", "code": "sh600078", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:34.182639+08:00", "code": "sh600079", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:36.397589+08:00", "code": "sh600080", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:39.728787+08:00", "code": "sh600081", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:40.613254+08:00", "code": "sh600082", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:41.890884+08:00", "code": "sh600084", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:43.605244+08:00", "code": "sh600085", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:20:46.599932+08:00", "code": "sh600088", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:20:49.778882+08:00", "code": "sh600089", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:20:51.838343+08:00", "code": "sh600094", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:20:53.953784+08:00", "code": "sh600095", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:20:55.326667+08:00", "code": "sh600096", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:20:56.836223+08:00", "code": "sh600097", "attempt": 1, "status": "queried", "error": null}

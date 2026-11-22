@@ -1,0 +1,59 @@
+{
+  "protocol": "output/kline_volume_20261122/比较口径.md",
+  "input_sha256": {
+    "scripts/11_daily_watch.py": "217cae8200a4cd171ac762fdfc9ade5f89b785c952cb9a554a54d0ad8f6ec009",
+    "output/simple_controls_20261121/results/stock_cache_sha256.csv": "7cb27d3894f1f037812af55e24c613d3054daebdd5bdda810a99f9176d63a86a",
+    "output/preds.csv": "6e559ad94ee75fe6e671e74a2b4924edf30ae211a2309263f259422914892072",
+    "output/config_used.json": "d8e7dc43a1a8d1092ed52bad33bac4acf5bba7942bfedd57295f7c17ad0238be",
+    "data/cache/master_list.csv": "2c3f05e2cb332e002ea21ccd6080beb8638751a9fbca1fa5521d345880511f7c",
+    "output/trend_pairs_20261121/比较口径.md": "2e2adc252ccba7b7aa256f257cb2ce7640540f8ad814a4fd9ac91e85b9c1ddfd",
+    "ashare/selection.py": "0590286e58f713c5b4428d19186b65abd92887e49ae0edf637c5eccc0a6ff23a",
+    "ashare/universe.py": "4499686f7e8e0c8c365b0d83315ac587550a042b7f5c70656e3271051d73369e",
+    "output/kline_volume_20261122/比较口径.md": "69ca2ac04ffd2bcc3233b8e8d19e91f3462e65fdc8c2cd6c691b83b62a3ad9f9",
+    "output/trend_pairs_20261121/results/manifest.json": "7577dc3d89d877f1bf4bad2a3e1bdd0708b4b991a5ed1e4f5fabf520d7f13036",
+    "scripts/12_trend_pairs.py": "afc28c1b65598be840096067b5bdeab3d295440947cf32e1205e3856ef5d1778",
+    "output/trend_pairs_20261121/results/pool.csv": "bf6b66e4683ecaa205996765cc18ae432086eaf41117c7004b9d7f596185be48"
+  },
+  "runner_sha256": "3ac49f4ea0fc50b26f55d3a5408897887b349e44b9830c965002eadf53ef5301",
+  "numpy": "2.5.4",
+  "pandas": "3.0.6",
+  "benchmark": "sh000300",
+  "calendar_cross_check": "sh000905",
+  "quote_hash_index": "output/simple_controls_20261121/results/stock_cache_sha256.csv",
+  "checked_quote_files": 3774,
+  "quote_sources_by_phase": "quote_hashes.csv",
+  "predictions": 242399,
+  "score_dates": 72,
+  "first_score": "2021-01-21",
+  "last_score": "2026-11-20",
+  "last_close": "2026-11-20",
+  "original_pool_rows": 12085,
+  "original_state_counts": {
+    "unconfirmed": 9741,
+    "strong": 2314,
+    "unknown": 30
+  },
+  "rank_caliper": 5,
+  "holding_intervals": 10,
+  "bootstrap_seed": 20261121,
+  "bootstrap_block": 3,
+  "bootstrap_draws": 10000,
+  "fee_deducted": false,
+  "plan_sha256": {
+    "plan.csv": "5515e0f74aa625658902dd3678963397b30d6133829ffba3f3223273abac848c",
+    "plan_dates.csv": "910442195f5c40f1b58c85cda20b36793be700a42f70f644fd5a4a7e09384465"
+  },
+  "plan_stage": "all dates and specifications sealed before outcomes",
+  "summary_weight": "equal complete-pair dates; annual and regime masks applied after whole mature-axis sampling",
+  "units": "returns, hit rates and differences are fractions (0.01 difference = 1 percentage point)",
+  "output_sha256": {
+    "pool.csv": "248ffae9ba117c5aa4fc7ceb1bcf78a5ac2e99eb4ff7fed78988b8b7dd0f8d82",
+    "plan.csv": "5515e0f74aa625658902dd3678963397b30d6133829ffba3f3223273abac848c",
+    "plan_dates.csv": "910442195f5c40f1b58c85cda20b36793be700a42f70f644fd5a4a7e09384465",
+    "plan.sha256": "9d79040c686179afa9ea1845da02cf7dd40d3891891b0279fdd1cf45522d316b",
+    "pairs.csv": "1fed1eebed4b34b9e3edbbc7b9dbe32cef7a650a919f42eb7d7758ba0fcb3369",
+    "dates.csv": "c8279141d55b4efb0eedf842e77aab57c14a68839d104c5f8235029b0f720832",
+    "summary.csv": "6402ec3f865316e2677596eea2831b29660f9af3a2ce225862faa249c94cc28d",
+    "quote_hashes.csv": "8e0f0a17c95539e78708ca248d7af7cf28715ed7e5fa42f45937c8ee27b12993"
+  }
+}

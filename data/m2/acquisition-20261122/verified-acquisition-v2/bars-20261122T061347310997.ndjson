@@ -1,0 +1,61 @@
+{"at": "2026-11-22T06:13:48.805341+08:00", "code": "sh000001", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:13:53.002984+08:00", "code": "sh000300", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:13:55.506260+08:00", "code": "sh000852", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:13:57.595675+08:00", "code": "sh000905", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:00.862745+08:00", "code": "sh600000", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:02.588081+08:00", "code": "sh600004", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:04.553555+08:00", "code": "sh600006", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:14:06.032662+08:00", "code": "sh600007", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:07.237647+08:00", "code": "sh600008", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:08.447526+08:00", "code": "sh600009", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:14:10.299786+08:00", "code": "sh600010", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:11.946870+08:00", "code": "sh600011", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:15.954176+08:00", "code": "sh600012", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:14:17.787991+08:00", "code": "sh600015", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:19.097149+08:00", "code": "sh600016", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:22.792018+08:00", "code": "sh600017", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:24.258792+08:00", "code": "sh600018", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:29.453739+08:00", "code": "sh600019", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:32.843844+08:00", "code": "sh600020", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:39.617731+08:00", "code": "sh600021", "attempt": 1, "status": "failed", "error": "ValueError(('source status/schema', '10001001', '用户未登录', [], ['code', 'dividOperateDate', 'foreAdjustFactor', 'backAdjustFactor', 'adjustFactor']))"}
+{"at": "2026-11-22T06:14:42.973177+08:00", "code": "sh600021", "attempt": 2, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:44.309977+08:00", "code": "sh600022", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:51.052435+08:00", "code": "sh600023", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:53.530957+08:00", "code": "sh600025", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:55.000269+08:00", "code": "sh600026", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:14:56.867586+08:00", "code": "sh600027", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:14:58.917622+08:00", "code": "sh600028", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:15:00.522072+08:00", "code": "sh600029", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:15:03.095224+08:00", "code": "sh600030", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:15:05.768271+08:00", "code": "sh600031", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:15:07.618340+08:00", "code": "sh600032", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:15:10.365039+08:00", "code": "sh600033", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:15:12.228872+08:00", "code": "sh600035", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:15:14.223553+08:00", "code": "sh600036", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:15:16.659533+08:00", "code": "sh600037", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:15:19.031565+08:00", "code": "sh600038", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:15:20.495620+08:00", "code": "sh600039", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:15:26.176138+08:00", "code": "sh600048", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:15:27.970103+08:00", "code": "sh600050", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:15:37.731039+08:00", "code": "sh600051", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:15:40.137357+08:00", "code": "sh600052", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:15:44.956884+08:00", "code": "sh600053", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:15:46.349090+08:00", "code": "sh600054", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:15:48.632328+08:00", "code": "sh600055", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:15:51.032613+08:00", "code": "sh600056", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:15:52.757859+08:00", "code": "sh600057", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:15:55.983344+08:00", "code": "sh600058", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:15:58.888630+08:00", "code": "sh600059", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:16:00.685973+08:00", "code": "sh600060", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:16:03.090500+08:00", "code": "sh600061", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:16:04.966204+08:00", "code": "sh600062", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:16:06.941597+08:00", "code": "sh600063", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:16:09.387732+08:00", "code": "sh600064", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:16:11.662901+08:00", "code": "sh600066", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:16:14.095825+08:00", "code": "sh600067", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:16:18.213980+08:00", "code": "sh600071", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:16:21.129048+08:00", "code": "sh600072", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}
+{"at": "2026-11-22T06:16:26.287483+08:00", "code": "sh600073", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:16:29.504548+08:00", "code": "sh600075", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:16:31.646767+08:00", "code": "sh600076", "attempt": 1, "status": "queried", "error": null}
+{"at": "2026-11-22T06:16:34.592512+08:00", "code": "sh600078", "attempt": 1, "status": "failed", "error": "ValueError('日线数值无效、实际交易锚不为正或 OHLC 区间矛盾')"}

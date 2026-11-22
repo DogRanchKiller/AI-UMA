@@ -1,0 +1,298 @@
+{
+  "date": "2026-11-20",
+  "buy": [
+    {
+      "code": "sh601077",
+      "name": "渝农商行",
+      "score": 1.0,
+      "percentile": 100.0,
+      "price": 7.29,
+      "industry": "J66货币金融服务",
+      "weight_pct": 8.78,
+      "reasons": [
+        "距250日高点",
+        "20日下影线占比",
+        "60日距高点回撤"
+      ],
+      "risks": [
+        "60日Beta",
+        "60日与基准相关性",
+        "20日下行波动率"
+      ]
+    },
+    {
+      "code": "sh601963",
+      "name": "重庆银行",
+      "score": 0.9997,
+      "percentile": 100.0,
+      "price": 10.97,
+      "industry": "J66货币金融服务",
+      "weight_pct": 8.03,
+      "reasons": [
+        "20日下影线占比",
+        "距250日高点",
+        "60日距高点回撤"
+      ],
+      "risks": [
+        "60日与基准相关性",
+        "60日Beta",
+        "20日下行波动率"
+      ]
+    },
+    {
+      "code": "sh601818",
+      "name": "光大银行",
+      "score": 0.9995,
+      "percentile": 99.9,
+      "price": 3.25,
+      "industry": "J66货币金融服务",
+      "weight_pct": 10.0,
+      "reasons": [
+        "OBV斜率",
+        "60日距高点回撤",
+        "距250日高点"
+      ],
+      "risks": [
+        "60日与基准相关性",
+        "60日波动率",
+        "20日上影线占比"
+      ]
+    },
+    {
+      "code": "sz301399",
+      "name": "英特科技",
+      "score": 0.9992,
+      "percentile": 99.9,
+      "price": 12.59,
+      "industry": "C34通用设备制造业",
+      "weight_pct": 2.89,
+      "reasons": [
+        "5日隔夜收益",
+        "60日Beta",
+        "Amihud非流动性"
+      ],
+      "risks": [
+        "20日上影线占比",
+        "1日收益",
+        "5日日内收益"
+      ]
+    },
+    {
+      "code": "sh601229",
+      "name": "上海银行",
+      "score": 0.999,
+      "percentile": 99.9,
+      "price": 8.81,
+      "industry": "J66货币金融服务",
+      "weight_pct": 7.53,
+      "reasons": [
+        "10日收益",
+        "5日收益",
+        "距250日高点"
+      ],
+      "risks": [
+        "60日Beta",
+        "60日与基准相关性",
+        "价量相关性"
+      ]
+    },
+    {
+      "code": "sh601009",
+      "name": "南京银行",
+      "score": 0.9987,
+      "percentile": 99.9,
+      "price": 13.35,
+      "industry": "J66货币金融服务",
+      "weight_pct": 9.04,
+      "reasons": [
+        "距250日高点",
+        "60日距高点回撤",
+        "RSI(14)"
+      ],
+      "risks": [
+        "60日与基准相关性",
+        "60日Beta",
+        "成交量变异系数"
+      ]
+    },
+    {
+      "code": "sh601166",
+      "name": "兴业银行",
+      "score": 0.9985,
+      "percentile": 99.8,
+      "price": 20.3,
+      "industry": "J66货币金融服务",
+      "weight_pct": 10.0,
+      "reasons": [
+        "20日下影线占比",
+        "60日距高点回撤",
+        "距250日高点"
+      ],
+      "risks": [
+        "60日与基准相关性",
+        "20日上影线占比",
+        "20日波动率"
+      ]
+    },
+    {
+      "code": "sh600282",
+      "name": "南钢股份",
+      "score": 0.9982,
+      "percentile": 99.8,
+      "price": 4.57,
+      "industry": "C31黑色金属冶炼和压延加工业",
+      "weight_pct": 6.71,
+      "reasons": [
+        "5日收益",
+        "布林带位置",
+        "5日日内收益"
+      ],
+      "risks": [
+        "60日Beta",
+        "60日与基准相关性",
+        "20日Parkinson波动"
+      ]
+    },
+    {
+      "code": "sh603655",
+      "name": "朗博科技",
+      "score": 0.998,
+      "percentile": 99.8,
+      "price": 19.83,
+      "industry": "C29橡胶和塑料制品业",
+      "weight_pct": 3.58,
+      "reasons": [
+        "Amihud非流动性",
+        "5日隔夜收益",
+        "ext_holder_chg"
+      ],
+      "risks": [
+        "20日上影线占比",
+        "成交量变异系数",
+        "5日日内收益"
+      ]
+    },
+    {
+      "code": "sh600012",
+      "name": "皖通高速",
+      "score": 0.9977,
+      "percentile": 99.8,
+      "price": 17.73,
+      "industry": "G54道路运输业",
+      "weight_pct": 6.84,
+      "reasons": [
+        "距250日高点",
+        "60日收益",
+        "60日距高点回撤"
+      ],
+      "risks": [
+        "60日Beta",
+        "60日与基准相关性",
+        "ext_holder_chg"
+      ]
+    },
+    {
+      "code": "sh605266",
+      "name": "健之佳",
+      "score": 0.9975,
+      "percentile": 99.7,
+      "price": 11.9,
+      "industry": "F52零售业",
+      "weight_pct": 5.68,
+      "reasons": [
+        "成交量变异系数",
+        "ext_lhb_net_20",
+        "Amihud非流动性"
+      ],
+      "risks": [
+        "60日Alpha",
+        "60日与基准相关性",
+        "60日Beta"
+      ]
+    },
+    {
+      "code": "sh600919",
+      "name": "江苏银行",
+      "score": 0.9972,
+      "percentile": 99.7,
+      "price": 13.66,
+      "industry": "J66货币金融服务",
+      "weight_pct": 10.0,
+      "reasons": [
+        "距250日高点",
+        "60日距高点回撤",
+        "RSI(14)"
+      ],
+      "risks": [
+        "60日Beta",
+        "60日与基准相关性",
+        "ATR占价比"
+      ]
+    },
+    {
+      "code": "sz300819",
+      "name": "聚杰微纤",
+      "score": 0.997,
+      "percentile": 99.7,
+      "price": 27.51,
+      "industry": "C17纺织业",
+      "weight_pct": 3.62,
+      "reasons": [
+        "5日隔夜收益",
+        "250日动量(剔除近20日)",
+        "60日与基准相关性"
+      ],
+      "risks": [
+        "120日收益",
+        "20日下影线占比",
+        "距250日高点"
+      ]
+    },
+    {
+      "code": "sz301040",
+      "name": "中环海陆",
+      "score": 0.9967,
+      "percentile": 99.7,
+      "price": 16.93,
+      "industry": "C33金属制品业",
+      "weight_pct": 4.04,
+      "reasons": [
+        "5日隔夜收益",
+        "Amihud非流动性",
+        "ext_holder_chg"
+      ],
+      "risks": [
+        "20日上影线占比",
+        "5日日内收益",
+        "10日收益"
+      ]
+    },
+    {
+      "code": "sz300585",
+      "name": "奥联电子",
+      "score": 0.9965,
+      "percentile": 99.6,
+      "price": 9.5,
+      "industry": "C36汽车制造业",
+      "weight_pct": 3.26,
+      "reasons": [
+        "60日与基准相关性",
+        "60日Beta",
+        "Amihud非流动性"
+      ],
+      "risks": [
+        "ext_fc_amp",
+        "成交量变异系数",
+        "60日动量(剔除近5日)"
+      ]
+    }
+  ],
+  "sell": [],
+  "hold": [],
+  "empty": false,
+  "weighting": "inv_vol",
+  "top_n": 15,
+  "risk_on": false,
+  "regime_ma": 60,
+  "notice": "市场闸门关闭：基准位于 60 日均线下方，系统当前建议空仓观望，不应新建仓。"
+}

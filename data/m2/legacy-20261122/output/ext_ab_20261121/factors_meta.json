@@ -1,0 +1,203 @@
+{
+  "factors": {
+    "ret_1": {
+      "name": "1日收益",
+      "group": "动量反转"
+    },
+    "ret_5": {
+      "name": "5日收益",
+      "group": "动量反转"
+    },
+    "ret_10": {
+      "name": "10日收益",
+      "group": "动量反转"
+    },
+    "ret_20": {
+      "name": "20日收益",
+      "group": "动量反转"
+    },
+    "ret_60": {
+      "name": "60日收益",
+      "group": "动量反转"
+    },
+    "ret_120": {
+      "name": "120日收益",
+      "group": "动量反转"
+    },
+    "mom_60_skip5": {
+      "name": "60日动量(剔除近5日)",
+      "group": "动量反转"
+    },
+    "mom_250_skip20": {
+      "name": "250日动量(剔除近20日)",
+      "group": "动量反转"
+    },
+    "vol_20": {
+      "name": "20日波动率",
+      "group": "波动风险"
+    },
+    "vol_60": {
+      "name": "60日波动率",
+      "group": "波动风险"
+    },
+    "dvol_20": {
+      "name": "20日下行波动率",
+      "group": "波动风险"
+    },
+    "parkinson_20": {
+      "name": "20日Parkinson波动",
+      "group": "波动风险"
+    },
+    "atr_ratio": {
+      "name": "ATR占价比",
+      "group": "波动风险"
+    },
+    "dd_60": {
+      "name": "60日距高点回撤",
+      "group": "波动风险"
+    },
+    "te_60": {
+      "name": "60日跟踪误差",
+      "group": "波动风险"
+    },
+    "turn_ratio": {
+      "name": "量比(5/20日)",
+      "group": "流动性"
+    },
+    "amihud_20": {
+      "name": "Amihud非流动性",
+      "group": "流动性"
+    },
+    "log_amount": {
+      "name": "对数成交额",
+      "group": "流动性"
+    },
+    "amount_ratio": {
+      "name": "成交额放大率(5/20日)",
+      "group": "流动性"
+    },
+    "vol_cv_20": {
+      "name": "成交量变异系数",
+      "group": "流动性"
+    },
+    "corr_pv_20": {
+      "name": "价量相关性",
+      "group": "量价关系"
+    },
+    "updown_vol_20": {
+      "name": "涨跌放量比",
+      "group": "量价关系"
+    },
+    "obv_slope_20": {
+      "name": "OBV斜率",
+      "group": "量价关系"
+    },
+    "vwap_dev": {
+      "name": "VWAP偏离度",
+      "group": "量价关系"
+    },
+    "ma5_div": {
+      "name": "5日线乖离",
+      "group": "技术形态"
+    },
+    "ma20_div": {
+      "name": "20日线乖离",
+      "group": "技术形态"
+    },
+    "ma60_div": {
+      "name": "60日线乖离",
+      "group": "技术形态"
+    },
+    "ma_trend": {
+      "name": "20/60日线趋势",
+      "group": "技术形态"
+    },
+    "rsi_14": {
+      "name": "RSI(14)",
+      "group": "技术形态"
+    },
+    "boll_pos": {
+      "name": "布林带位置",
+      "group": "技术形态"
+    },
+    "high_250_dist": {
+      "name": "距250日高点",
+      "group": "技术形态"
+    },
+    "low_250_dist": {
+      "name": "距250日低点",
+      "group": "技术形态"
+    },
+    "breakout_60": {
+      "name": "60日突破",
+      "group": "技术形态"
+    },
+    "consec_up": {
+      "name": "连续上涨天数",
+      "group": "技术形态"
+    },
+    "limit_up_cnt_20": {
+      "name": "20日强势天数",
+      "group": "市场情绪"
+    },
+    "overnight_5": {
+      "name": "5日隔夜收益",
+      "group": "日内结构"
+    },
+    "intraday_5": {
+      "name": "5日日内收益",
+      "group": "日内结构"
+    },
+    "upper_shadow_20": {
+      "name": "20日上影线占比",
+      "group": "日内结构"
+    },
+    "lower_shadow_20": {
+      "name": "20日下影线占比",
+      "group": "日内结构"
+    },
+    "beta_60": {
+      "name": "60日Beta",
+      "group": "市场关联"
+    },
+    "alpha_60": {
+      "name": "60日Alpha",
+      "group": "市场关联"
+    },
+    "rel_ret_20": {
+      "name": "20日相对基准",
+      "group": "市场关联"
+    },
+    "corr_bench_60": {
+      "name": "60日与基准相关性",
+      "group": "市场关联"
+    },
+    "ind_rel_ret_20": {
+      "name": "行业相对20日收益",
+      "group": "行业内"
+    },
+    "ind_rel_ret_5": {
+      "name": "行业相对5日收益",
+      "group": "行业内"
+    },
+    "ind_rel_ret_60": {
+      "name": "行业相对60日收益",
+      "group": "行业内"
+    },
+    "ind_rel_amount": {
+      "name": "行业相对成交额",
+      "group": "行业内"
+    }
+  },
+  "groups": [
+    "动量反转",
+    "市场关联",
+    "市场情绪",
+    "技术形态",
+    "日内结构",
+    "波动风险",
+    "流动性",
+    "行业内",
+    "量价关系"
+  ]
+}
