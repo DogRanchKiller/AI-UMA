@@ -1,0 +1,21 @@
+# 按当前开发环境锁定（Python 3.12.10，Windows x64）。
+# 这些版本要求 Python >= 3.12（numpy 2.5 / scipy 1.18）。
+# 安装：python -m pip install -r requirements.txt
+
+# 数据与计算
+numpy==2.5.4
+pandas==3.0.6
+scipy==1.18.1        # pandas 的 Spearman 相关（ashare/metrics.py）需要
+lightgbm==4.7.0
+
+# 数据源
+baostock==0.9.4
+akshare==1.20.42     # 外部数据（ashare/extdata.py）
+requests==2.34.2
+
+# Web 看板（web/app.py、scripts/serve.py）
+fastapi==0.149.0
+uvicorn==0.54.0
+
+# 测试
+pytest==9.1.1

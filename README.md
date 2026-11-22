@@ -27,7 +27,7 @@ python scripts/02_build.py
 python scripts/serve.py --open          # http://127.0.0.1:8710
 ```
 
-环境要求：Python 3.10+，`pandas numpy lightgbm scipy fastapi uvicorn requests`；在线更新行情还需要 `baostock` 提供证券主表、交易日历及停牌状态。
+环境要求：Python 3.12+，依赖版本锁定在 `requirements.txt`（`python -m pip install -r requirements.txt`）。在线更新行情用 `baostock` 提供证券主表、交易日历及停牌状态；`akshare` 只用于外部数据（`scripts/09_fetch_ext.py`）。
 无需 API key，无需付费数据源。
 
 ---
