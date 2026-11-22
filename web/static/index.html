@@ -11,6 +11,11 @@
   --fg:#e8edf5; --fg-2:#a8b3c4; --meta:#6b7789;
   --accent:#3d8bfd; --accent-soft:rgba(61,139,253,.14);
   --up:#f2555a; --down:#22b07d; --warn:#e0a33c; --danger:#ff6b6b;
+  /* 深度阶梯：用表面抬升表达层级，不用投影阴影 */
+  --depth-0:#0b0e13; --depth-1:#10151c; --depth-2:#171f2b; --depth-3:#212b3a;
+  --rim:rgba(61,139,253,.30); --grid-3d:#1b2331;
+  /* 高度顺序阶：只用亮度表达数值高低，刻意避开红绿以免与涨跌语义撞车 */
+  --ramp-1:#16324f; --ramp-2:#24557f; --ramp-3:#3d8bfd; --ramp-4:#8fbaff; --ramp-5:#d6e6ff;
   --font-ui:"Inter","PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
   --font-mono:"IBM Plex Mono","Cascadia Mono",Consolas,ui-monospace,monospace;
   --t-xs:11px; --t-sm:12px; --t-md:13px; --t-lg:15px; --t-xl:18px; --t-2xl:24px; --t-3xl:32px;
@@ -90,12 +95,7 @@ td.r,thead th.r{text-align:right}
 .nm{font-weight:500;white-space:nowrap}
 .rank{color:var(--meta);font-family:var(--font-mono);font-size:var(--t-xs);width:22px}
 
-/* ---------- 分位脊柱（签名元素） ---------- */
-.spine{display:inline-block;position:relative;width:72px;height:4px;border-radius:2px;background:var(--border);vertical-align:middle}
-.spine .fill{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--fg-2)}
-.spine .fill.hi{background:var(--up)}
-.spine .fill.mid{background:color-mix(in srgb,var(--up) 62%,var(--surface))}
-.spine .tick{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--fg-2);opacity:.45}
+/* ---------- 分位脊柱（签名元素，样式见「3D 视图」一节的 .spine3d） ---------- */
 .pct{font-family:var(--font-mono);font-size:var(--t-xs);color:var(--fg-2);min-width:38px;display:inline-block;text-align:right}
 .reasons{display:flex;gap:4px;flex-wrap:wrap}
 .rs{font-size:var(--t-xs);padding:1px 6px;border-radius:4px;background:var(--surface-2);color:var(--fg-2);border:1px solid var(--border);white-space:nowrap}
@@ -175,6 +175,52 @@ td.r,thead th.r{text-align:right}
 .gate.on .k{color:var(--up)}
 .gate.dim{opacity:.75}
 
+/* ---------- 3D 视图 ----------
+   深度只承载信息：表面高度＝数值，亮度＝量级。每个 3D 视图都能一键切回 2D，
+   并把切换结果播报给读屏器（见 #live）。 */
+.viewport{
+  position:relative;overflow:hidden;
+  background:var(--depth-0);
+  border:1px solid var(--border-soft);border-radius:var(--r-sm);
+  margin:0 var(--s4) var(--s4);
+  box-shadow:inset 0 1px 0 var(--rim), inset 0 22px 44px -30px #000;
+}
+.viewport .chart{height:340px}
+.row-low .viewport{flex:1;display:flex;min-height:230px}
+.row-low .viewport .chart{height:100%;flex:1}
+.hd-ctl{margin-left:auto;display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap;justify-content:flex-end}
+.hd-ctl .hint{margin-left:0}
+.seg{display:inline-flex;gap:2px;padding:2px;background:var(--depth-1);border:1px solid var(--border);border-radius:999px}
+.seg button{
+  padding:2px 10px;border-radius:999px;font-size:var(--t-xs);color:var(--meta);
+  transition:color var(--motion),background var(--motion);
+}
+.seg button[aria-pressed="true"]{background:var(--depth-3);color:var(--fg)}
+.seg button:hover{color:var(--fg-2)}
+.cam{
+  display:inline-flex;align-items:center;gap:5px;padding:3px 9px;font-size:var(--t-xs);
+  color:var(--fg-2);background:var(--depth-1);border:1px solid var(--border);border-radius:var(--r-sm);
+  transition:color var(--motion),border-color var(--motion);
+}
+.cam:hover{color:var(--fg);border-color:color-mix(in srgb,var(--accent) 40%,var(--border))}
+.cam[hidden]{display:none}
+.gl-note{padding:0 var(--s4) var(--s4);font-size:var(--t-xs);color:var(--warn);line-height:1.6}
+.gl-note[hidden]{display:none}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
+  clip:rect(0 0 0 0);white-space:nowrap;border:0}
+/* 等距强度柱：把榜内强度做进深度，读数仍然靠旁边的数字 */
+.spine3d{width:58px;height:12px;display:inline-block;vertical-align:middle}
+.spine3d .track{fill:none;stroke:var(--border);stroke-width:1;stroke-dasharray:1 2}
+.spine3d .face{fill:var(--fg-2);opacity:.85}
+.spine3d .top{fill:color-mix(in srgb,var(--fg) 70%,var(--depth-2))}
+.spine3d .side{fill:color-mix(in srgb,var(--fg-2) 55%,var(--depth-3))}
+.spine3d .tick{stroke:var(--fg-2);stroke-width:1;opacity:.45}
+.spine3d.hi .face{fill:var(--up)}
+.spine3d.hi .top{fill:color-mix(in srgb,var(--up) 70%,#fff)}
+.spine3d.hi .side{fill:color-mix(in srgb,var(--up) 45%,var(--depth-1))}
+.spine3d.mid .face{fill:color-mix(in srgb,var(--up) 62%,var(--surface))}
+tbody tr:hover .spine3d{transform:translateY(-1px)}
+
 /* ---------- 状态 ---------- */
 .state{padding:var(--s8) var(--s4);text-align:center;color:var(--meta);font-size:var(--t-sm)}
 .state.err{color:var(--warn)}
@@ -188,6 +234,7 @@ td.r,thead th.r{text-align:right}
 @media (max-width:1100px){
   .row-main,.row-mid,.row-low{grid-template-columns:1fr}
   .chart{height:230px}
+  .viewport .chart{height:240px}
 }
 @media (max-width:640px){
   main{padding:var(--s3) var(--s3) var(--s8)}
@@ -195,7 +242,7 @@ td.r,thead th.r{text-align:right}
   .brand{font-size:var(--t-md)}
   .kpis{grid-template-columns:1fr 1fr}
   .kpi .val{font-size:var(--t-xl)}
-  .spine{width:52px}
+  .spine3d{width:46px}
 }
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important}
@@ -212,6 +259,7 @@ td.r,thead th.r{text-align:right}
 </header>
 
 <main>
+  <div id="live" class="sr" role="status" aria-live="polite"></div>
   <!-- 判定区 -->
   <section class="grid row-main">
     <div class="panel">
@@ -240,13 +288,24 @@ td.r,thead th.r{text-align:right}
   <!-- 信任区 -->
   <section class="grid row-mid">
     <div class="panel">
-      <div class="panel-hd"><h2>净值与回撤</h2><span class="hint" id="eqHint"></span></div>
-      <div class="legend">
+      <div class="panel-hd">
+        <h2>净值与回撤</h2>
+        <div class="hd-ctl">
+          <span class="hint" id="eqHint"></span>
+          <div class="seg" id="eqSeg" role="group" aria-label="净值视图切换">
+            <button type="button" data-mode="3d" aria-pressed="true">3D 峡谷</button>
+            <button type="button" data-mode="2d" aria-pressed="false">2D 曲线</button>
+          </div>
+          <button type="button" class="cam" id="eqCam" hidden>复位视角</button>
+        </div>
+      </div>
+      <div class="legend" id="eqLegend">
         <span><i style="background:var(--accent)"></i>策略净值</span>
         <span><i style="background:var(--meta)"></i>沪深300</span>
         <span><i style="background:color-mix(in srgb,var(--danger) 60%,transparent)"></i>策略回撤</span>
       </div>
-      <div class="panel-bd flush"><div id="eqChart" class="chart tall"></div></div>
+      <div class="viewport"><div id="eqChart" class="chart tall"></div></div>
+      <div class="gl-note" id="eqNote" hidden></div>
     </div>
 
     <div class="panel">
@@ -263,7 +322,12 @@ td.r,thead th.r{text-align:right}
     </div>
 
     <div class="panel">
-      <div class="panel-hd"><h2>分层收益单调性</h2><span class="hint">第5层 > 第1层 才算有效</span></div>
+      <div class="panel-hd">
+        <h2>分层收益</h2>
+        <div class="hd-ctl">
+          <span class="hint" id="layerHint">第5层 &gt; 第1层 才算有效</span>
+        </div>
+      </div>
       <div class="panel-bd flush"><div id="layerChart" class="chart sm"></div></div>
     </div>
 
@@ -281,12 +345,21 @@ td.r,thead th.r{text-align:right}
 </main>
 
 <script src="/static/echarts.min.js"></script>
+<script src="/static/echarts-gl.min.js"></script>
 <script>
 "use strict";
+
+// 深度调色板只写在 CSS 变量里（DESIGN.md §12）；这里按名字取用，别再抄一遍十六进制。
+const tok = (name, fallback) => {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+};
 
 const C = {
   accent:"#3d8bfd", up:"#f2555a", down:"#22b07d", warn:"#e0a33c", danger:"#ff6b6b",
   meta:"#6b7789", fg2:"#a8b3c4", fg:"#e8edf5", border:"#1f2633", surface:"#0e1116",
+  grid3d:tok("--grid-3d","#1b2331"), gridLine:"#26303f",
+  ramp2:tok("--ramp-2","#24557f"), ramp5:tok("--ramp-5","#d6e6ff"),
   mono:'"IBM Plex Mono","Cascadia Mono",Consolas,monospace',
 };
 
@@ -318,9 +391,19 @@ function setPills(items){
 function spineHTML(rel){
   const p = Math.max(0, Math.min(100, rel ?? 0));
   const kind = p>=85 ? "hi" : p>=55 ? "mid" : "";
-  return `<span class="spine" role="img" aria-label="榜内相对强度 ${p.toFixed(0)}%">` +
-         `<span class="fill ${kind}" style="width:${Math.max(p,4)}%"></span>` +
-         `<span class="tick" title="榜内中位"></span></span>`;
+  // 等距投影：顶面 + 正面 + 侧面，三面受光不同，深度靠明暗而不是阴影
+  const W=58, H=7, DX=3, DY=3;
+  const w = Math.max(3, (p/100) * W);
+  const y = DY + 1;
+  const vbW = W + DX + 2, vbH = y + H + 2;
+  return `<svg class="spine3d ${kind}" viewBox="0 0 ${vbW} ${vbH}" width="${vbW*1.55}" height="${vbH*1.55}"` +
+         ` role="img" aria-label="榜内相对强度 ${p.toFixed(0)}%">` +
+         `<rect class="track" x="0.5" y="${y+0.5}" width="${W}" height="${H}" rx="1"/>` +
+         `<polygon class="top" points="0,${y} ${DX},${y-DY} ${w+DX},${y-DY} ${w},${y}"/>` +
+         `<rect class="face" x="0" y="${y}" width="${w}" height="${H}"/>` +
+         `<polygon class="side" points="${w},${y} ${w+DX},${y-DY} ${w+DX},${y-DY+H} ${w},${y+H}"/>` +
+         `<line class="tick" x1="${W/2}" y1="${y-DY}" x2="${W/2}" y2="${y+H}" title="榜内中位"/>` +
+         `</svg>`;
 }
 
 /* ---------- 买入表 ---------- */
@@ -450,11 +533,97 @@ function baseGrid(o={}){ return Object.assign({left:8,right:12,top:16,bottom:8,c
 function axisStyle(){ return {axisLine:{lineStyle:{color:C.border}}, axisTick:{show:false},
   axisLabel:{color:C.meta,fontSize:11,fontFamily:C.mono}, splitLine:{lineStyle:{color:"#131922"}}}; }
 
-function ec(id){ return echarts.init($(id), null, {renderer:"canvas"}); }
+/* ---------- 图表容器与 3D 能力探测 ---------- */
+const slots = {eq:null, ic:null, imp:null, layer:null};
+const VIEW = {eq:"2d"};
+const DATA = {eq:null, layers:null};
+let GL_OK = false;
 
-function renderEquity(d){
-  const ch = ec("eqChart");
-  ch.setOption({
+function ec(id){
+  const el = $(id);
+  const prev = echarts.getInstanceByDom(el);
+  if(prev) prev.dispose();
+  return echarts.init(el, null, {renderer:"canvas"});
+}
+
+function onResize(){
+  Object.values(slots).forEach(c=>{ if(c && !c.isDisposed()) c.resize(); });
+}
+
+/* WebGL 与 echarts-gl 都要真的可用才切 3D：只探测 getContext 会在软件渲染器上骗人，
+   所以离屏 init 一个 grid3D，确认组件真的建起来再返回 true。 */
+function probeGL(){
+  try{
+    const c = document.createElement("canvas");
+    const gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+    if(!gl) return false;
+    const host = document.createElement("div");
+    host.style.cssText = "position:absolute;left:-9999px;top:0;width:120px;height:120px";
+    document.body.appendChild(host);
+    const ch = echarts.init(host, null, {renderer:"canvas"});
+    ch.setOption({
+      grid3D:{}, xAxis3D:{}, yAxis3D:{}, zAxis3D:{},
+      series:[{type:"surface", data:[[0,0,1],[0,1,2],[1,0,3],[1,1,4]]}],
+    });
+    const ok = !!ch.getModel().getComponent("grid3D");
+    ch.dispose();
+    host.remove();
+    return ok;
+  }catch(err){
+    return false;
+  }
+}
+
+function glNote(key, msg){
+  const el = $(key + "Note");
+  if(!el) return;
+  if(!msg){ el.hidden = true; el.textContent = ""; return; }
+  el.hidden = false;
+  el.textContent = msg;
+}
+
+/** 等间隔抽稀，保留首尾，3D 里点太密只会糊成一片 */
+function pickIdx(len, n){
+  if(len <= n) return Array.from({length:len}, (_,i)=>i);
+  const step = (len - 1) / (n - 1);
+  return Array.from({length:n}, (_,i)=>Math.round(i*step));
+}
+
+function say(text){
+  const el = $("live");
+  if(el) el.textContent = text;
+}
+
+function syncSeg(key){
+  const box = $(key + "Seg");
+  if(box){
+    box.querySelectorAll("button[data-mode]").forEach(b=>{
+      b.setAttribute("aria-pressed", String(b.dataset.mode === VIEW[key]));
+    });
+  }
+  const cam = $(key + "Cam");
+  if(cam) cam.hidden = VIEW[key] !== "3d";
+}
+
+function setView(key, mode){
+  if(mode === "3d" && !GL_OK){
+    glNote(key, "当前浏览器不支持 WebGL，已保持二维视图。");
+    return;
+  }
+  VIEW[key] = mode;
+  syncSeg(key);
+  renderEq();
+  say(mode === "3d" ? "已切换到三维视图" : "已切换到二维视图");
+}
+
+function startOf(d){
+  // 报告实际交易起点，而不是数据起点（两者可能差一整年）
+  const i = d.equity.findIndex(v => Math.abs(v - 1) > 1e-6);
+  return i > 0 ? d.dates[i] : d.dates[0];
+}
+
+function optEquity(d){
+  return {
     backgroundColor:"transparent",
     grid:baseGrid({left:10,right:14,top:20,bottom:30}),
     tooltip:{trigger:"axis",backgroundColor:"#0b0f15",borderColor:C.border,
@@ -479,12 +648,94 @@ function renderEquity(d){
       {name:"沪深300",type:"line",data:d.benchmark,symbol:"none",
        lineStyle:{color:C.meta,width:1.5,type:"dashed"},z:2}
     ]
+  };
+}
+
+/* 回撤峡谷：上层曲线＝净值，下层曲线＝当时的回撤水位，两线之间的点阵就是峡谷壁。
+   三维在这里只回答一个问题——回撤挖得有多深、挖了多久；读数仍回到 2D。 */
+function optCanyon(d){
+  const idx = pickIdx(d.dates.length, 420);
+  const dates = idx.map(i=>d.dates[i]);
+  const net = idx.map(i=>d.equity[i]);
+  const low = idx.map((i,k)=>{
+    const dd = Math.abs(d.drawdown[i] ?? 0);   // drawdown 是负百分数
+    return net[k] * (1 - dd/100);
   });
-  // 报告实际交易起点，而不是数据起点（两者可能差一整年）
-  const firstTrade = d.equity.findIndex(v => Math.abs(v - 1) > 1e-6);
-  const start = firstTrade > 0 ? d.dates[firstTrade] : d.dates[0];
-  $("eqHint").textContent = `交易自 ${start} 起 · ${d.dates.length} 点`;
-  return ch;
+  // 峡谷壁：沿着两线之间竖向采样，深度直接可见（点阵做薄，避免糊成一团）
+  const wall = [];
+  const stride = Math.max(1, Math.floor(idx.length/70));
+  for(let k=0;k<idx.length;k+=stride){
+    const gap = net[k] - low[k];
+    for(let s=0;s<=3;s++) wall.push([k, 0.5, low[k] + gap*(s/3)]);
+  }
+  const bench = idx.map(i=>d.benchmark[i]);
+  const axis3d = (extra)=>({
+    name:"",
+    nameTextStyle:{show:false},
+    axisLine:{lineStyle:{color:C.gridLine}},
+    axisTick:{show:false},
+    axisLabel:{color:C.meta,fontSize:10,fontFamily:C.mono},
+    splitLine:{lineStyle:{color:C.grid3d}},
+    ...extra,
+  });
+  return {
+    backgroundColor:"transparent",
+    tooltip:{show:true,backgroundColor:"#0b0f15",borderColor:C.border,
+      textStyle:{color:C.fg,fontSize:12,fontFamily:C.mono},
+      formatter:(p)=>{
+        const x = Math.round(p.value[0]);
+        const z = Number(p.value[2]).toFixed(3);
+        const dd = (net[x] > 0 ? (z/net[x]-1)*100 : 0).toFixed(1);
+        return `${dates[x] ?? ""}<br/>净值 ${z}` +
+               (p.value[1] < 0.01 ? `<br/>回撤 ${dd}%` : "");
+      }},
+    xAxis3D:axis3d({type:"value", min:0, max:idx.length-1, splitNumber:2,
+      axisLabel:{show:false}, axisPointer:{show:false}}),
+    yAxis3D:axis3d({type:"value", min:0, max:1, splitNumber:1,
+      axisLabel:{show:false}}),
+    zAxis3D:axis3d({type:"value", scale:true, splitNumber:3,
+      axisLabel:{color:C.meta,fontSize:10,fontFamily:C.mono,
+        formatter:(v)=>Number(v).toFixed(2)}}),
+    grid3D:{
+      environment:"#0b0e13",
+      light:{main:{intensity:1.15,shadow:false,alpha:38,beta:-28},
+             ambient:{intensity:.55},
+             ambientCubemap:{intensity:0}},
+    },
+    viewControl:{projection:"perspective", alpha:26, beta:-14,
+      distance:120, autoRotate:false, minDistance:55, maxDistance:280},
+    series:[
+      {name:"回撤壁", type:"scatter3D", data:wall,
+       symbolSize:3.4, itemStyle:{color:C.ramp2, opacity:.8},
+       emphasis:{itemStyle:{color:C.ramp5}}},
+      {name:"策略净值", type:"line3D", data: net.map((v,k)=>[k, 1, v]),
+       lineStyle:{color:C.accent, width:3}},
+      {name:"沪深300", type:"line3D", data: bench.map((v,k)=>[k, 1, v]),
+       lineStyle:{color:C.meta, width:1.6}},
+      {name:"回撤水位", type:"line3D", data: low.map((v,k)=>[k, 0, v]),
+       lineStyle:{color:C.ramp2, width:2}},
+    ],
+  };
+}
+
+function renderEq(){
+  const d = DATA.eq;
+  if(!d) return;
+  if(VIEW.eq === "3d"){
+    try{
+      slots.eq = ec("eqChart");
+      slots.eq.setOption(optCanyon(d), true);
+      $("eqHint").textContent = `${startOf(d)} 起 · ${d.dates.length} 点 · 上层净值 / 下层回撤水位`;
+      return;
+    }catch(err){
+      VIEW.eq = "2d";
+      syncSeg("eq");
+      glNote("eq", "三维渲染失败，已切回二维视图：" + err.message);
+    }
+  }
+  slots.eq = ec("eqChart");
+  slots.eq.setOption(optEquity(d), true);
+  $("eqHint").textContent = `交易自 ${startOf(d)} 起 · ${d.dates.length} 点`;
 }
 
 function renderIC(d){
@@ -526,13 +777,8 @@ function renderImportance(d){
   return ch;
 }
 
-function renderLayers(d){
-  const ch = ec("layerChart");
-  if(!d.values || !d.values.length){
-    $("layerChart").innerHTML = `<div class="state">缺少分层数据</div>`;
-    return null;
-  }
-  ch.setOption({
+function optLayers(d){
+  return {
     backgroundColor:"transparent",
     grid:Object.assign(baseGrid({left:16,right:16,top:24,bottom:14}),{containLabel:true}),
     tooltip:{trigger:"axis",backgroundColor:"#0b0f15",borderColor:C.border,
@@ -543,8 +789,23 @@ function renderLayers(d){
     series:[{type:"bar",data:d.values.map(v=>({value:v,
         itemStyle:{color:v>=0?C.up:C.down,opacity:.85,borderRadius:[3,3,0,0]}})),
       barWidth:"52%"}]
-  });
-  return ch;
+  };
+}
+
+function renderLayer(){
+  const d = DATA.layers;
+  const host = $("layerChart");
+  if(!d || !d.values || !d.values.length){
+    const prev = echarts.getInstanceByDom(host);
+    if(prev) prev.dispose();
+    slots.layer = null;
+    host.innerHTML = `<div class="state">缺少分层数据</div>`;
+    return;
+  }
+  if(host.querySelector(".state")) host.innerHTML = "";
+  slots.layer = ec("layerChart");
+  slots.layer.setOption(optLayers(d), true);
+  $("layerHint").textContent = "第5层 > 第1层 才算有效";
 }
 
 /* ---------- 诊断 ---------- */
@@ -578,8 +839,6 @@ function renderDiag(sm, trades, holdings){
 }
 
 /* ---------- 启动 ---------- */
-const charts = [];
-function onResize(){ charts.forEach(c=>c && c.resize()); }
 window.addEventListener("resize", onResize);
 
 async function boot(){
@@ -614,10 +873,24 @@ async function boot(){
     renderBuys(sig);
     renderKPIs(sm, eq);
 
-    charts.push(renderEquity(eq));
-    charts.push(renderIC(ic));
-    charts.push(renderImportance(imp));
-    charts.push(renderLayers(layers));
+    DATA.eq = eq;
+    DATA.layers = layers;
+    GL_OK = probeGL();
+    const want3D = GL_OK && window.innerWidth >= 900;
+    VIEW.eq = want3D ? "3d" : "2d";
+    if(!GL_OK) glNote("eq", "当前浏览器不支持 WebGL，已使用二维视图。");
+    const seg = $("eqSeg");
+    if(seg) seg.addEventListener("click", (ev)=>{
+      const btn = ev.target.closest("button[data-mode]");
+      if(btn) setView("eq", btn.dataset.mode);
+    });
+    const cam = $("eqCam");
+    if(cam) cam.addEventListener("click", ()=>setView("eq", VIEW.eq));
+    syncSeg("eq");
+    renderEq();
+    slots.ic = renderIC(ic);
+    slots.imp = renderImportance(imp);
+    renderLayer();
     renderDiag(sm);
     // 等布局稳定后重算尺寸，否则 flex 撑开的容器会给 ECharts 一个过期高度
     requestAnimationFrame(() => onResize());
