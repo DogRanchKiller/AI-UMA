@@ -12,6 +12,8 @@
 from __future__ import annotations
 
 import logging
+import re
+from decimal import Decimal
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -43,6 +45,135 @@ def _rebalance_dates(signal_dates: list[pd.Timestamp], every: int) -> list[pd.Ti
     return [d for i, d in enumerate(signal_dates) if i % every == 0]
 
 
+def volatility60(mats):
+    """历史收盘比例收益的波动率；无因子的旧调用方提供已连续的价格。"""
+    close = mats["close"] * mats.get("adj_factor", 1.)
+    return close.pct_change(fill_method=None).rolling(60, min_periods=40).std()
+
+
+_EVENT_FIELDS = ('code', 'dividPreNoticeDate', 'dividAgmPumDate', 'dividPlanAnnounceDate',
+                 'dividPlanDate', 'dividRegistDate', 'dividOperateDate', 'dividPayDate',
+                 'dividStockMarketDate', 'dividCashPsBeforeTax', 'dividCashPsAfterTax',
+                 'dividStocksPs', 'dividCashStock', 'dividReserveToStockPs')
+
+
+def _event_index(rows):
+    """仅保留逐字段完全相同的重复记录；有冲突的键不能授权记账。"""
+    if rows is None or rows.empty:
+        return {}
+    if set(rows.columns) != set(_EVENT_FIELDS) or not rows.columns.is_unique:
+        raise ValueError('公司行为原始字段不完整')
+    grouped = {}
+    for row in rows.drop_duplicates().to_dict('records'):
+        if (not all(isinstance(v, str) for v in row.values()) or not re.fullmatch(r'(sh|sz)\.\d{6}', row['code'])
+                or not re.fullmatch(r'\d{4}-\d{2}-\d{2}', row['dividOperateDate'])):
+            raise ValueError('公司行为必须保留 SDK 原始串、代码和生效日')
+        code = row['code'].replace('.', '')
+        key = (pd.Timestamp(row['dividOperateDate']), code)
+        if key in grouped:
+            raise ValueError(f'{key[0].date()} {code} 公司行为重复冲突，拒绝估值')
+        grouped[key] = row
+    return grouped
+
+
+def _terms(row, code, d, reg, previous_close, f0, f1):
+    """由独立公告条款给出税前现金和新增股份；乘数仅用于对账。"""
+    try:
+        if not row or pd.Timestamp(row['dividRegistDate']) != reg or not pd.Timestamp(row['dividPlanDate']) <= reg:
+            raise ValueError('缺少独立记录、重复冲突或登记/公告日期不符')
+        # 只接受明确的每十股方案；不接受配股、不明附加权益或数值歧义。
+        plan = re.sub(r'[（(]含税(?:[，,]扣税后[\d.]+(?:或[\d.]+)*元?)?[）)]$', '', row['dividCashStock'])
+        parts = re.findall(r'(送|转增?|派)(\d+(?:\.\d+)?)(股|元)?', plan)
+        if not parts or plan != '10' + ''.join(''.join(part) for part in parts):
+            raise ValueError('未支持的方案')
+        terms = {}
+        for kind, amount, unit in parts:
+            kind = kind[0]
+            if kind in terms or (unit and unit != ('元' if kind == '派' else '股')):
+                raise ValueError('方案条款重复或单位无效')
+            terms[kind] = Decimal(amount) / 10
+        for kind, field in [('派', 'dividCashPsBeforeTax'), ('送', 'dividStocksPs'), ('转', 'dividReserveToStockPs')]:
+            v = row[field]
+            if pd.isna(v) or v == '':
+                if kind in terms:
+                    raise ValueError(f'{field} 缺少独立数值')
+            elif Decimal(str(v)) != terms.get(kind, 0):
+                raise ValueError('每股字段与公告方案不一致')
+        bonus, reserve, cash = (terms.get(k, Decimal('0')) for k in ('送', '转', '派'))
+        if not (cash or bonus or reserve):
+            raise ValueError('无可核对权益')
+        pay = pd.Timestamp(row['dividPayDate']) if cash else None
+        listing = pd.Timestamp(row['dividStockMarketDate']) if bonus or reserve else None
+        if (cash and not pay >= d) or ((bonus or reserve) and not listing >= d):
+            raise ValueError('缺少发放或上市日')
+        reference = (previous_close - float(cash)) / (1 + float(bonus + reserve))
+        if not np.isfinite(reference) or reference <= 0 or abs(reference - previous_close * f0 / f1) > .005001:
+            raise ValueError('条款与累计因子折算参考价不符')
+        return cash, bonus + reserve, pay, listing
+    except (ValueError, ArithmeticError, TypeError) as exc:
+        raise ValueError(f'{d.date()} 持仓跨除权 {code}：{exc}，拒绝估值') from exc
+
+
+class _Entitlements:
+    """不可用的应收款与待上市股份分开估值；从不把乘数本身兑换成持仓或现金。"""
+    def __init__(self, rows):
+        self.by_date = {}
+        for (d, c), record in _event_index(rows).items():
+            self.by_date.setdefault(d, {})[c] = record
+        self.cash_due = []
+        self.stock_due = []
+        self.applied = 0
+
+    def stock_positions(self):
+        qty = {}
+        for _, c, n in self.stock_due:
+            qty[c] = qty.get(c, 0) + n
+        return qty
+
+    def at_open(self, d, prior_date, mats, changed, shares):
+        records = self.by_date.get(d, {})
+        locked = self.stock_positions()
+        for c in shares.keys() | locked.keys():
+            has_jump = bool(changed.at[d, c]) if changed is not None else False
+            if not has_jump and c not in records:
+                continue
+            if not has_jump or c in locked or prior_date is None:
+                raise ValueError(f'{d.date()} 持仓跨除权 {c}：条款无可匹配因子或有未上市的重叠权益，拒绝估值')
+            row = records.get(c)
+            f = mats['adj_factor']
+            cash_ps, shares_ps, pay, listing = _terms(row, c, d, prior_date, mats['close'].at[prior_date, c],
+                                                       f.at[prior_date, c], f.at[d, c])
+            qty = Decimal(str(shares[c]))  # 今日开盘前的实际股数，即登记日收市股数。
+            bonus = qty * shares_ps
+            if bonus != bonus.to_integral_value():
+                raise ValueError(f'{d.date()} 持仓跨除权 {c}：零碎股分配规则未知，拒绝估值')
+            if bonus:
+                self.stock_due.append((listing, c, int(bonus)))
+            if cash_ps:
+                self.cash_due.append((pay, float(qty * cash_ps)))
+            self.applied += 1
+        # 公告的股票上市日才能卖出；除权日新买者不享有此前已登记权益。
+        for listing, c, n in self.stock_due:
+            if listing <= d:
+                shares[c] = shares.get(c, 0) + n
+        self.stock_due = [x for x in self.stock_due if x[0] > d]
+
+    def settle_cash(self, d):
+        """发放日收市才入可用现金；未假设当日开盘已到账。"""
+        paid = sum(value for date, value in self.cash_due if date <= d)
+        self.cash_due = [x for x in self.cash_due if x[0] > d]
+        return paid
+
+    def restricted(self, d, px):
+        value = sum(amount for _, amount in self.cash_due)
+        for c, qty in self.stock_positions().items():
+            valid = px[c].loc[:d].dropna()
+            if valid.empty:
+                raise ValueError(f'{d.date()} 待上市权益 {c} 无可用报价，拒绝估值')
+            value += qty * valid.iloc[-1]
+        return value
+
+
 def run(
     scores: pd.DataFrame,
     mats: dict[str, pd.DataFrame],
@@ -53,11 +184,13 @@ def run(
     cfg: Config,
     regime_ok: pd.Series | None = None,
     industry: dict[str, str] | None = None,
+    *, corporate_actions: pd.DataFrame | None = None,
 ) -> BacktestResult:
     """执行回测。scores 为宽表 date × code，仅包含调仓日。
 
-    regime_ok 为市场状态闸门：该日给出 False 时清仓离场，不建新仓。
-    industry  为代码到行业名的映射，用于限制单一行业入选数量。
+    mask 和 regime_ok 按信号日收盘取值，调用方无需平移。regime_ok 为 None 表示不设闸门；
+    若已提供闸门，信号日取值缺失视为关闭。开盘价、can_buy 和 can_sell 按执行日取值。
+    industry 为代码到行业名的映射，用于限制单一行业入选数量。
     """
     open_, close = mats["open"], mats["close"]
     dates = close.index
@@ -83,18 +216,26 @@ def run(
                "orphan_suspended": 0, "brake_off": 0}
 
     # 逆波动加权需要的 60 日波动率截面（只用历史，无前视）
-    vol60 = (close / close.shift(1) - 1.0).rolling(60, min_periods=40).std()
+    vol60 = volatility60(mats)
+    # 停牌空行不产生事件；复牌对比上次可见因子，不能漏掉停牌期间的除权。
+    actions = None
+    if "adj_factor" in mats:
+        factor = mats["adj_factor"]
+        prior = factor.ffill().shift(1)
+        actions = factor.notna() & prior.notna() & factor.ne(prior)
 
     peak = 0.0
     brake_active = False
 
-    for d in dates:
+    ledger = _Entitlements(corporate_actions)
+    for i, d in enumerate(dates):
+        ledger.at_open(d, dates[i - 1] if i else None, mats, actions, shares)
         sig = exec_map.get(d)
         if sig is not None:
             # regime_ok 可以是布尔（二值闸门）或 [0,1] 浮点（连续仓位系数）
             exposure = 1.0
             if regime_ok is not None:
-                v = regime_ok.get(d, 1.0)
+                v = regime_ok.get(sig, 0.0)
                 exposure = float(v) if pd.notna(v) else 0.0
                 exposure = min(max(exposure, 0.0), 1.0)
             risk_on = exposure > 1e-3
@@ -114,13 +255,15 @@ def run(
             cash = _execute(
                 d, sig, scores, open_, close, mask, can_buy, can_sell,
                 cash, shares, cfg, trades, blocked, weight_rows, risk_on,
-                vol_row=vol60.loc[d] if d in vol60.index else None,
+                vol_row=vol60.loc[sig],
                 gross_mult=gross_mult,
-                industry=industry,
+                industry=industry, restricted_open=ledger.restricted(d, open_),
+                restricted_close=ledger.restricted(d, close), locked=ledger.stock_positions(),
             )
         # 收盘估值
         cl = close.loc[d]
-        val = cash
+        cash += ledger.settle_cash(d)
+        val = cash + ledger.restricted(d, close)
         for c, sh in shares.items():
             p = cl.get(c, np.nan)
             if pd.notna(p) and p > 0:
@@ -160,6 +303,10 @@ def run(
         "刹车清仓次数": blocked.get("brake_off", 0),
         "期末持仓数": len([c for c, s in shares.items() if s > 0]),
         "期末现金占比": float(cash_ratio),
+        "公司行为口径": "独立公告税前权益（不含红利个税）；发放日收市入现金、股份上市日起可卖",
+        "已登记持仓权益事件数": ledger.applied,
+        "期末应收税前现金": sum(x[1] for x in ledger.cash_due),
+        "期末待上市股份": ledger.stock_positions(),
     }
     return BacktestResult(
         equity=equity, benchmark=bench, weights=weights, trades=trade_df,
@@ -231,10 +378,11 @@ def _execute(
     cash, shares, cfg, trades, blocked, weight_rows, risk_on: bool = True,
     vol_row: pd.Series | None = None, gross_mult: float = 1.0,
     industry: dict[str, str] | None = None,
+    restricted_open: float = 0., restricted_close: float = 0., locked: dict | None = None,
 ) -> float:
     """在 d 日开盘执行 sig 日的信号，返回执行后的现金。
 
-    vol_row   : 当日的 60 日波动率截面，供逆波动加权使用
+    vol_row   : 截至信号日收盘的 60 日波动率截面，供逆波动加权使用
     gross_mult: 仓位乘数（回撤刹车触发时小于 1 或为 0）
     """
     op = open_.loc[d]
@@ -258,14 +406,12 @@ def _execute(
             blocked["brake_off"] = blocked.get("brake_off", 0) + 1
         return cash
 
-    row = scores.loc[sig].dropna()
-    if row.empty:
+    # 候选池含收盘价、全天成交量等字段，只能使用信号日截面。
+    if sig not in mask.index:
         return cash
-
-    # 只在可交易池内选股
-    if d in mask.index:
-        avail = mask.loc[d]
-        row = row[row.index.isin(avail.index[avail.fillna(False).astype(bool)])]
+    row = scores.loc[sig].dropna()
+    avail = mask.loc[sig].fillna(False).astype(bool)
+    row = row[row.index.isin(avail.index[avail])]
     if row.empty:
         return cash
 
@@ -307,7 +453,7 @@ def _execute(
     for c, sh in shares.items():
         p = op.get(c, np.nan)
         pos_value += sh * float(p) if pd.notna(p) and p > 0 else 0.0
-    equity_open = cash + pos_value
+    equity_open = cash + pos_value + restricted_open
     if equity_open <= 0:
         return cash
 
@@ -339,7 +485,7 @@ def _execute(
         tgt_val = equity_open * wmap.get(c, 0.0) * gross_mult
         if tgt_val <= 0:
             continue
-        cur_val = shares.get(c, 0.0) * float(px)
+        cur_val = (shares.get(c, 0.0) + (locked or {}).get(c, 0)) * float(px)
         if cur_val >= tgt_val * 0.7:
             continue  # 已接近目标权重
         budget = min(tgt_val - cur_val, cash)
@@ -365,15 +511,15 @@ def _execute(
 
     # ---- 3. 记录收盘权重（用收盘价估值，便于与净值口径一致） ----
     cl = close.loc[d]
-    total = cash
+    total = cash + restricted_close
     for c, sh in shares.items():
         p = cl.get(c, np.nan)
         if pd.notna(p) and p > 0:
             total += sh * float(p)
     if total > 0:
         weight_rows[d] = {
-            c: (sh * float(cl.get(c, 0) or 0)) / total
-            for c, sh in shares.items()
-            if sh > 0 and pd.notna(cl.get(c, np.nan))
+            c: ((shares.get(c, 0) + (locked or {}).get(c, 0)) * float(cl[c])) / total
+            for c in shares.keys() | (locked or {}).keys()
+            if pd.notna(cl.get(c, np.nan))
         }
     return cash

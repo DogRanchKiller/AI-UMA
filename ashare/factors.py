@@ -1,4 +1,4 @@
-"""因子库：全部由前复权 OHLCV 派生，不含任何未来信息。
+"""因子库：以未复权 OHLC、真实量额及当时已生效的逐股后复权因子计算。
 
 因子组织方式为宽表（index=交易日, columns=股票代码），便于向量化横截面运算。
 所有因子在返回前不做标准化，标准化由 `cross_sectional_process` 统一完成。
@@ -70,22 +70,49 @@ def factor_names() -> list[str]:
 # --------------------------------------------------------------------------- #
 # 宽表构建
 # --------------------------------------------------------------------------- #
+_BAR_FIELDS = ("open", "high", "low", "close", "volume", "amount", "adj_factor")
+
+
+def _validate_matrices(mats: dict[str, pd.DataFrame]) -> None:
+    missing = set(_BAR_FIELDS).difference(mats)
+    if missing:
+        raise ValueError(f"缺少原始行情字段 {sorted(missing)}，不能使用旧矩阵")
+    close = mats["close"]
+    if not close.index.is_unique or not close.index.is_monotonic_increasing or not close.columns.is_unique:
+        raise ValueError("行情日期必须唯一且递增，股票代码不能重复")
+    present = close.notna().to_numpy()
+    for field in _BAR_FIELDS:
+        frame = mats[field]
+        if not frame.index.equals(close.index) or not frame.columns.equals(close.columns):
+            raise ValueError(f"{field} 未与原始收盘价对齐")
+        values = frame.to_numpy(dtype=float)
+        valid = values >= 0 if field in ("volume", "amount") else values > 0
+        if not np.where(present, np.isfinite(values) & valid, np.isnan(values)).all():
+            raise ValueError(f"{field} 包含无效值或缺失值")
+    if ((mats["amount"] == 0) != (mats["volume"] == 0)).any().any():
+        raise ValueError("amount 与 volume 零值不一致")
+
+
 def build_matrices(panel: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
-    """把逐股 DataFrame 汇总为字段宽表。"""
-    fields = ["open", "high", "low", "close", "volume"]
-    out: dict[str, pd.DataFrame] = {f: {} for f in fields}
+    """交易和绝对价筛选使用原价；volume 为手，amount 为元，adj_factor 为当日累计比例。"""
+    out = {f: {} for f in _BAR_FIELDS}
     for code, df in panel.items():
-        if df is None or df.empty:
+        if df is None:
+            continue
+        missing = {"date", *_BAR_FIELDS}.difference(df.columns)
+        if missing:
+            raise ValueError(f"{code} 缺少原始行情字段 {sorted(missing)}，不能使用旧行情")
+        if df.empty:
             continue
         s = df.set_index("date")
-        for f in fields:
-            out[f][code] = s[f]
-    mats = {}
-    for f in fields:
-        m = pd.DataFrame(out[f]).sort_index()
-        mats[f] = m.astype("float32")
-    # 成交额（元）：volume 单位为手(100股)，近似成交额 = 收盘价 * 成交量 * 100
-    mats["amount"] = (mats["close"] * mats["volume"] * 100.0).astype("float32")
+        if s.index.has_duplicates:
+            raise ValueError(f"{code} 行情日期重复")
+        if s.index.hasnans or s["close"].isna().any():
+            raise ValueError(f"{code} 存在无日期或无收盘价的行情行")
+        for field in _BAR_FIELDS:
+            out[field][code] = s[field]
+    mats = {f: pd.DataFrame(cols).sort_index().astype("float64") for f, cols in out.items()}
+    _validate_matrices(mats)
     return mats
 
 
@@ -105,7 +132,7 @@ def clean_matrices(mats: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
 # 因子计算
 # --------------------------------------------------------------------------- #
 def _safe_div(a: pd.DataFrame, b: pd.DataFrame) -> pd.DataFrame:
-    return (a / b.replace(0.0, np.nan)).astype("float32")
+    return a / b.replace(0.0, np.nan)
 
 
 def _pct(close: pd.DataFrame, n: int) -> pd.DataFrame:
@@ -134,7 +161,10 @@ def compute_factors(
     同期中位收益，剥离行业 beta，只留下个股的特质部分。这类因子与全市场动量
     相关性低，是真正独立的信息来源。
     """
-    close, open_, high, low = mats["close"], mats["open"], mats["high"], mats["low"]
+    _validate_matrices(mats)
+    # F_t 只含截至当日的事件。计算比例价而不改写供交易使用的原价宽表。
+    factor = mats["adj_factor"].astype("float64")
+    close, open_, high, low = (mats[k] * factor for k in ("close", "open", "high", "low"))
     vol, amount = mats["volume"], mats["amount"]
 
     ret1 = _pct(close, 1)
@@ -179,7 +209,8 @@ def compute_factors(
     signed_vol = vol * np.sign(ret1.fillna(0.0))
     obv = signed_vol.cumsum()
     f["obv_slope_20"] = _safe_div(obv - obv.shift(20), vma20 * 20)
-    vwap20 = _safe_div(amount.rolling(20, min_periods=15).sum(),
+    # 与比例收盘价同单位：Σ(amount_t × F_t) / Σ(100 × hands_t)。逐日换算，不能在窗末补乘。
+    vwap20 = _safe_div((amount * factor).rolling(20, min_periods=15).sum(),
                        (vol.rolling(20, min_periods=15).sum() * 100.0))
     f["vwap_dev"] = _safe_div(close, vwap20) - 1.0
 

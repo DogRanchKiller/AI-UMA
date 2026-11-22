@@ -86,6 +86,16 @@ def limit_pct_by_code(codes: list[str]) -> pd.Series:
     return pd.Series({c: one(c) for c in codes}, dtype="float64")
 
 
+def panel_tradeable_at_open(mats):
+    """同一比例单位估算开盘幅度（非交易所精确参考价）；无昨收或无量不撮合。"""
+    factor = mats['adj_factor']
+    op = mats['open'] * factor
+    prev = (mats['close'] * factor).shift(1)
+    buy, sell = tradeable_at_open(op, prev, list(op.columns))
+    valid = prev.gt(0) & mats['volume'].gt(0)
+    return buy & valid, sell & valid
+
+
 def tradeable_at_open(
     open_: pd.DataFrame, prev_close: pd.DataFrame, codes: list[str]
 ) -> tuple[pd.DataFrame, pd.DataFrame]:

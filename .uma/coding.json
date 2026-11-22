@@ -20,7 +20,7 @@
       "argv": ["python", "tests/smoke_pipeline.py"],
       "kind": "test",
       "origin": ".uma/coding.json",
-      "coverage": ["ashare/**/*.py", "tests/smoke_pipeline.py"]
+      "coverage": ["ashare/**/*.py", "tests/smoke_pipeline.py", "tests/test_smoke_pipeline.py"]
     },
     {
       "name": "api-health",

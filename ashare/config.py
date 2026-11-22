@@ -22,6 +22,7 @@ class Config:
     start_date: str = "2019-01-01"      # 历史起点（留足因子预热）
     end_date: str = ""                  # 空 = 今天
     benchmark: str = "sh000300"         # 基准：沪深300
+    start_year: int = 2020              # 外部数据（股东户数/业绩预告）起始年份
 
     # ---------- 股票池 ----------
     min_list_days: int = 250            # 上市满 250 个交易日后才可交易
@@ -38,6 +39,9 @@ class Config:
     # （年化 9.96%→6.37%）。它们与已有的 ret_20 等高度共线，加入后只是把信号
     # 拆散到相关特征上、放大了打分尾部的方差，而组合只取尾部。默认关闭。
     use_industry_factors: bool = False
+    # 外部数据因子（股东户数/业绩预告/龙虎榜）。与量价因子相关性低，
+    # 是目前唯一还有信息增量的方向。需先跑 scripts/09_fetch_ext.py 缓存数据。
+    use_ext_factors: bool = False
 
     # ---------- 模型 ----------
     train_days: int = 750               # 滚动训练窗口（交易日）

@@ -23,7 +23,6 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import pickle
 import sys
 import time
 from pathlib import Path
@@ -34,7 +33,9 @@ import numpy as np
 import pandas as pd
 
 from ashare.config import CACHE_DIR, OUT_DIR, Config
+from ashare import build_cache
 from ashare import datasource as ds
+from ashare import extdata as ed
 from ashare import factors as fc
 from ashare import labels as lb
 from ashare import metrics as mt
@@ -75,7 +76,7 @@ def load_inputs(cfg: Config):
         ds.to_tencent(c): n
         for c, n in zip(master["code"], master["name"])
     }
-    codes = master["code"].tolist() + [cfg.benchmark, "sh000905", "sh000852", "sh000001"]
+    codes = list(dict.fromkeys([*master['code'], cfg.benchmark, 'sh000300', 'sh000905', 'sh000852', 'sh000001']))
     panel = ds.load_panel(codes, cfg, min_rows=120)
     log.info("有效面板：%d 只", len(panel))
     if len(panel) < 100:
@@ -83,50 +84,61 @@ def load_inputs(cfg: Config):
     return master, names, panel
 
 
-def build_pipeline(cfg: Config, use_cache: bool = True, top_n: int | None = None):
+def check_market_dates(panel: dict, calendar: pd.DatetimeIndex, benchmark: str) -> None:
+    """宽表用并集造轴；股票单独多出一天也会悄悄改变十日窗口，必须先核对两条指数原始日历。"""
+    reference = 'sh000905' if benchmark != 'sh000905' else 'sh000300'
+    for code in (benchmark, reference):
+        if code not in panel:
+            raise SystemExit(f'缺少用于核对交易日历的指数 {code}')
+        dates = pd.DatetimeIndex(panel[code]['date'])
+        if (dates.empty or dates.has_duplicates or not dates.is_monotonic_increasing
+                or not dates.equals(calendar)):
+            raise SystemExit(f'{code} 与行情面板交易日历不一致，先补齐并检查异常日期，不发布')
+
+
+def build_pipeline(cfg: Config, use_cache: bool = True, top_n: int | None = None, *, corporate_actions=None):
     if top_n:
         cfg.top_n = top_n
     t0 = time.time()
 
     master, names, panel = load_inputs(cfg)
     mats = fc.clean_matrices(fc.build_matrices(panel))
-    close, open_ = mats["close"], mats["open"]
+    close = mats["close"]
+    check_market_dates(panel, close.index, cfg.benchmark)
     log.info("行情矩阵：%s，耗时 %.0fs", close.shape, time.time() - t0)
 
-    bench = close[cfg.benchmark].dropna() if cfg.benchmark in close.columns else None
-    if bench is None:
+    if close.empty or cfg.benchmark not in close.columns:
         raise SystemExit(f"缺少基准 {cfg.benchmark}")
+    op, hi, lo, cl, vol = (mats[field][cfg.benchmark].iat[-1]
+                           for field in ('open', 'high', 'low', 'close', 'volume'))
+    if (not all(np.isfinite(v) and v > 0 for v in (op, hi, lo, cl, vol))
+            or lo > min(op, cl) or hi < max(op, cl)):
+        raise SystemExit(f"{close.index[-1].date()} 缺少完整基准日线，不发布本次构建")
+    bench = close[cfg.benchmark].dropna()
 
     mask = uv.build_mask(mats, names, cfg, universe_codes=list(names))
     log.info("可交易标的日均 %d 只", int(mask.sum(axis=1).mean()))
 
     cache_f = CACHE_DIR / "factors.pkl"
-    key_f = {"ind": bool(cfg.use_industry_factors), "v": 2}
-    key_fp = CACHE_DIR / "factors_key.json"
-    cache_ok = False
-    if use_cache and cache_f.exists() and key_fp.exists():
-        try:
-            cache_ok = json.loads(key_fp.read_text(encoding="utf-8")) == key_f
-        except Exception:  # noqa: BLE001
-            cache_ok = False
-    if cache_ok:
-        factors = pickle.loads(cache_f.read_bytes())
-        log.info("因子命中缓存")
-    else:
-        industry = ds.industry_map(cfg) if cfg.use_industry_factors else {}
-        if industry:
-            log.info("行业映射 %d 只 / %d 个行业",
-                     len(industry), len(set(industry.values())))
-        factors = fc.compute_factors(mats, benchmark=bench, industry=industry or None)
+    factor_industry = ds.industry_map(cfg) if cfg.use_industry_factors else {}
+    extra = ed.build_ext_factors(cfg, close.index) if cfg.use_ext_factors else {}
+    key_f = build_cache.factor_key(mats, cfg, factor_industry, extra)
+    factors = build_cache.read_cache(cache_f, key_f) if use_cache else None
+    if factors is None:
+        factors = fc.compute_factors(mats, benchmark=bench, industry=factor_industry or None)
         factors = fc.standardize_panel(factors)
-        cache_f.write_bytes(pickle.dumps(factors))
-        key_fp.write_text(json.dumps(key_f), encoding="utf-8")
+        for name, frame in extra.items():
+            factors[name] = fc.cross_sectional_process(frame.reindex(columns=close.columns)).astype('float32')
+        build_cache.write_cache(cache_f, key_f, factors)
         log.info("因子计算完成：%d 个，耗时 %.0fs", len(factors), time.time() - t0)
+    else:
+        log.info("因子命中缓存：输入指纹 %s", key_f[:12])
 
     # 长表
     X = fc.to_long(factors, mask)
-    y_raw = lb.build_label(open_, bench, cfg.label_horizon, mask, normalize=False)
-    y_rank = lb.build_label(open_, bench, cfg.label_horizon, mask, normalize=True)
+    # 收盘基准只用于当时的因子、市场开关和收盘净值；标签两腿必须是相同两日的实际开盘。
+    y_raw = lb.panel_excess(mats, cfg.benchmark, cfg.label_horizon, mask)
+    y_rank = lb.rank_excess(y_raw)
     y = y_rank.stack(future_stack=True).reindex(X.index).astype("float32")
     X = X.loc[y.index]
     log.info("训练样本：%s 行 × %d 因子", f"{len(X):,}", X.shape[1])
@@ -144,23 +156,13 @@ def build_pipeline(cfg: Config, use_cache: bool = True, top_n: int | None = None
 
     # 滚动训练（带缓存：模型训练是确定性的，重复跑只会浪费时间）
     cache_p = CACHE_DIR / "preds.pkl"
-    cache_k = CACHE_DIR / "preds_key.json"
-    key = {"v": 2, "h": cfg.label_horizon, "td": cfg.train_days, "re": cfg.retrain_every,
-           "nbr": cfg.num_boost_round, "start": cfg.start_date,
-           "factors": str(cache_f.stat().st_mtime) if cache_f.exists() else "0"}
-    hit = False
-    if use_cache and cache_p.exists() and cache_k.exists():
-        try:
-            if json.loads(cache_k.read_text(encoding="utf-8")) == key:
-                bundle = pickle.loads(cache_p.read_bytes())
-                hit = True
-                log.info("预测命中缓存")
-        except Exception:  # noqa: BLE001 - 缓存损坏则重训
-            hit = False
-    if not hit:
+    key_p = build_cache.prediction_key(key_f, mask, pred_dates, cfg)
+    bundle = build_cache.read_cache(cache_p, key_p) if use_cache else None
+    if bundle is None:
         bundle = md.rolling_train(X, y, pred_dates, cfg)
-        cache_p.write_bytes(pickle.dumps(bundle))
-        cache_k.write_text(json.dumps(key), encoding="utf-8")
+        build_cache.write_cache(cache_p, key_p, bundle)
+    else:
+        log.info("预测命中缓存：输入指纹 %s", key_p[:12])
     preds = bundle.predictions
     log.info("预测完成：%d 条，耗时 %.0fs", len(preds), time.time() - t0)
 
@@ -178,18 +180,18 @@ def build_pipeline(cfg: Config, use_cache: bool = True, top_n: int | None = None
     industry = ds.industry_map(cfg)
 
     # 交易约束矩阵
-    prev_close = close.shift(1)
-    can_buy, can_sell = uv.tradeable_at_open(open_, prev_close, list(close.columns))
+    can_buy, can_sell = uv.panel_tradeable_at_open(mats)
 
     # 回测
     log.info("开始回测……闸门=%s 周期=%s 行业上限=%s",
              cfg.regime_mode, cfg.regime_ma, cfg.max_per_industry)
+    rights = {"corporate_actions": corporate_actions} if corporate_actions is not None else {}
     res = bt.run(sc, mats, mask, can_buy, can_sell, bench, cfg,
-                 regime_ok=regime, industry=industry)
+                 regime_ok=regime, industry=industry, **rights)
     res_base = bt.run(sc_base, mats, mask, can_buy, can_sell, bench, cfg,
-                      regime_ok=regime, industry=industry)
+                      regime_ok=regime, industry=industry, **rights)
     # 裸信号对照：不加任何组合约束，用于说明约束层的实际价值
-    res_raw = bt.run(sc_raw, mats, mask, can_buy, can_sell, bench, cfg)
+    res_raw = bt.run(sc_raw, mats, mask, can_buy, can_sell, bench, cfg, **rights)
     log.info("回测完成，耗时 %.0fs", time.time() - t0)
 
     # 评估：IC / 分层（只评估有已实现标签的信号日）
@@ -207,7 +209,7 @@ def build_pipeline(cfg: Config, use_cache: bool = True, top_n: int | None = None
     log.info("生成最新信号……")
     last = sc.index.max()
     # 用与回测完全相同的权重规则算出建议仓位，避免界面把不等权说成等权
-    vol60 = (close / close.shift(1) - 1.0).rolling(60, min_periods=40).std()
+    vol60 = bt.volatility60(mats)
     live_weights: dict[str, float] = {}
     if last in sc.index:
         last_row = sc.loc[last].dropna()
@@ -223,6 +225,8 @@ def build_pipeline(cfg: Config, use_cache: bool = True, top_n: int | None = None
             )
     sig = sg.build_signal(sc, close, factors, names, last, top_n=cfg.top_n,
                           weights=live_weights, industry=industry)
+    sig["market_date"] = str(bench.index.max().date())
+    sig["score_date"] = str(last.date())
     sig["weighting"] = cfg.weighting
     sig["top_n"] = cfg.top_n
     # 闸门状态：未入场时信号只作观察，不应直接照做
@@ -316,8 +320,8 @@ def main() -> int:
         cfg.label_horizon = args.horizon
     if args.rebalance:
         cfg.rebalance_every = args.rebalance
-    cfg.save(OUT_DIR / "config_used.json")
     build_pipeline(cfg, use_cache=not args.no_cache, top_n=args.top_n)
+    cfg.save(OUT_DIR / "config_used.json")
     return 0
 
 

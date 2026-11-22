@@ -8,6 +8,7 @@ import pytest
 
 from ashare import backtest as bt
 from ashare import metrics as mt
+from ashare import portfolio as po
 from ashare import universe as uv
 from ashare.config import Config
 
@@ -66,6 +67,96 @@ def test_buy_then_value_tracks_price():
     assert res.diagnostics["成交笔数"] > 0, "应该有成交"
     assert res.equity.iloc[-1] > 1.0, "持仓股票上涨后净值应大于 1"
     assert res.equity.notna().all()
+
+
+@pytest.mark.parametrize(("at_signal", "at_execution", "expected_shares"), [
+    (False, True, 0), (True, False, 9900), (0.25, 0.80, 2500),
+])
+def test_open_exposure_uses_signal_day_gate(at_signal, at_execution, expected_shares):
+    mats, mask, cb, cs, bench, idx, cols = _scenario([[10, 20]] * 3)
+    scores = pd.DataFrame([[1.0, 0.0]], index=idx[:1], columns=cols)
+    gate = pd.Series([at_signal, at_execution], index=idx[:2])
+    res = bt.run(scores, mats, mask, cb, cs, bench, _cfg(top_n=1, max_weight=1.0), gate)
+    assert res.holdings_by_date[idx[1]].get(cols[0], 0) == expected_shares
+
+
+def test_execution_benchmark_close_cannot_flip_same_open_gate():
+    idx = pd.bdate_range("2024-03-04", periods=22)
+    cols = ["sh600000"]
+    prices = pd.DataFrame(10.0, index=idx, columns=cols)
+    mats = {"open": prices, "close": prices}
+    mask = prices.notna()
+    cb, cs = uv.tradeable_at_open(prices, prices.shift(1), cols)
+    scores = pd.DataFrame([[1.0]], index=idx[-2:-1], columns=cols)
+    cfg = _cfg(top_n=1, max_weight=1.0, regime_ma=20)
+    bench = pd.Series(np.arange(len(idx)) + 100.0, index=idx)
+    shocked = bench.copy()
+    shocked.iloc[-1] = 90.0
+
+    def replay(index_close):
+        sc, gate = po.build_target_scores(scores, mats, mask, index_close, cfg)
+        return gate, bt.run(sc, mats, mask, cb, cs, index_close, cfg, regime_ok=gate)
+
+    gate_up, up = replay(bench)
+    gate_down, down = replay(shocked)
+    assert gate_up.iloc[-2] and gate_down.iloc[-2]
+    assert gate_up.iloc[-1] and not gate_down.iloc[-1]
+    assert not up.trades.empty
+    pd.testing.assert_frame_equal(up.trades, down.trades)
+
+
+@pytest.mark.parametrize("omit_date", [True, False])
+def test_missing_signal_gate_cannot_authorize_entry(omit_date):
+    mats, mask, cb, cs, bench, idx, cols = _scenario([[10, 20]] * 3)
+    scores = pd.DataFrame([[1.0, 0.0]], index=idx[:1], columns=cols)
+    gate = pd.Series([np.nan, 1.0], index=idx[:2])
+    if omit_date:
+        gate = gate.drop(idx[0])
+    res = bt.run(scores, mats, mask, cb, cs, bench, _cfg(), gate)
+    assert res.trades.empty
+
+
+def test_open_candidates_come_from_signal_day_pool():
+    mats, mask, cb, cs, bench, idx, cols = _scenario([[10, 20]] * 3)
+    scores = pd.DataFrame([[1.0, 0.5]], index=idx[:1], columns=cols)
+    mask.loc[idx[0]] = [False, True]
+    mask.loc[idx[1]] = [True, False]
+    res = bt.run(scores, mats, mask, cb, cs, bench, _cfg(top_n=1))
+    assert set(res.holdings_by_date[idx[1]]) == {cols[1]}
+
+
+def test_missing_signal_pool_cannot_authorize_entry():
+    mats, mask, cb, cs, bench, idx, cols = _scenario([[10, 20]] * 3)
+    scores = pd.DataFrame([[1.0, 0.5]], index=idx[:1], columns=cols)
+    res = bt.run(scores, mats, mask.drop(idx[0]), cb, cs, bench, _cfg())
+    assert res.trades.empty
+
+
+def test_execution_close_can_change_valuation_but_not_inv_vol_orders():
+    idx = pd.bdate_range("2024-03-04", periods=64)
+    cols = ["sh600000", "sh600001"]
+    moves = np.where(np.arange(len(idx)) % 2, -1, 1)[:, None] * np.array([0.005, 0.015])
+    close = pd.DataFrame(10.0 * (1 + moves).cumprod(axis=0), index=idx, columns=cols)
+    open_ = close.shift(1).fillna(10.0)
+    mask = pd.DataFrame(True, index=idx, columns=cols)
+    cb, cs = uv.tradeable_at_open(open_, close.shift(1), cols)
+    bench = pd.Series(3000.0, index=idx)
+    scores = pd.DataFrame([[1.0, 0.5]], index=idx[-2:-1], columns=cols)
+    cfg = _cfg(weighting="inv_vol", max_weight=1.0)
+
+    def replay(prices):
+        return bt.run(scores, {"open": open_, "close": prices}, mask, cb, cs, bench, cfg)
+
+    before = replay(close)
+    shocked = close.copy()
+    shocked.loc[idx[-1], cols[0]] = open_.loc[idx[-1], cols[0]] * 1.09
+    after = replay(shocked)
+    # 前 60 天两只股票的波动率之比为 1:3；不是退回等权而碰巧两次下单相同。
+    buys = before.trades.set_index("code")
+    invested = buys["shares"] * buys["price"]
+    assert invested[cols[0]] / invested.sum() == pytest.approx(0.75, abs=0.02)
+    pd.testing.assert_frame_equal(before.trades, after.trades)
+    assert after.equity.iloc[-1] > before.equity.iloc[-1]
 
 
 def test_cash_never_negative():

@@ -72,3 +72,42 @@ def test_benchmark_alignment_with_missing_days():
     excess = lb.build_label(px, bench, 4, normalize=False)
     assert excess.notna().any().any()
     assert excess.shape == px.shape
+    assert excess.loc[px.index[0]].isna().all()  # t+5 缺行，不能拿 t+6 代替
+    assert excess.loc[px.index[4]].isna().all()  # t+1 缺行
+    full = lb.build_label(px, _frames()[1], 4, normalize=False)
+    pd.testing.assert_series_equal(excess.loc[px.index[2]], full.loc[px.index[2]])
+
+
+def test_index_and_stock_use_the_same_two_actual_opens_not_index_close():
+    px, _ = _frames(n=13, m=1)
+    dates = px.index
+    stock, index = 'sh600000', 'sh000300'
+    px[index] = 70.
+    px.loc[dates[1]] = [5., 100.]
+    px.loc[dates[11]] = [5.5, 95.]
+    volume = pd.DataFrame(100., index=dates, columns=px.columns)
+    mats = {'open': px, 'volume': volume, 'close': px.copy(), 'adj_factor': px * 0 + 1}
+    mats['close'].loc[dates[11], index] = 120.  # 收盘会是 +20%，开盘实际是 -5%
+    mask = pd.DataFrame(True, index=dates, columns=px.columns)
+    mask[index] = False
+    raw = lb.panel_excess(mats, index, 10, mask)
+    assert raw.loc[dates[0], stock] == pytest.approx(.15, abs=1e-7)
+    assert raw[index].isna().all() and raw.loc[dates[2]:].isna().all().all()
+    mats['close'][index] *= 2
+    pd.testing.assert_frame_equal(raw, lb.panel_excess(mats, index, 10, mask))
+
+
+@pytest.mark.parametrize('which,field,value', [
+    ('stock', 'open', 0.), ('index', 'open', np.inf), ('stock', 'volume', np.nan),
+    ('index', 'volume', 0.), ('index', 'volume', np.inf), ('stock', 'open', -1.),
+])
+@pytest.mark.parametrize('endpoint', [1, 11])
+def test_bad_open_or_no_trade_on_either_leg_never_shifts_to_surrounding_quotes(which, field, value, endpoint):
+    px, benchmark = _frames(n=15, m=1)
+    px['index'] = benchmark
+    volume = px.copy() * 100.
+    mats = {'open': px, 'volume': volume, 'adj_factor': px * 0 + 1}
+    mats[field].iloc[endpoint, 0 if which == 'stock' else 1] = value
+    raw = lb.panel_excess(mats, 'index', 10, None)
+    assert np.isnan(raw.iloc[0, 0])
+    assert np.isfinite(raw.iloc[2, 0])  # 其他有效端点不受影响

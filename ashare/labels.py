@@ -4,9 +4,9 @@
     在第 t 日收盘后用截至 t 的数据算出因子并给出信号，
     第 t+1 日开盘买入，持有 N 个交易日后第 t+1+N 日开盘卖出。
 
-因此标签为 open[t+1+N] / open[t+1] - 1，再减去同期基准收益，
-最后做横截面分位标准化，作为回归目标。这样模型优化的目标与
-回测实际能拿到的收益一致，不会因为用了收盘价而对不上。
+生产标签使用上述两个开盘时点的比例价（原价乘当日有效因子）计算股票收益，
+再减去相同端点的指数收益，按截面分位作为训练目标。它是研究收益代理，
+并非账户实际损益；持仓权益、可用日期、手续费与滑点另由回测计算。
 """
 
 from __future__ import annotations
@@ -15,16 +15,19 @@ import numpy as np
 import pandas as pd
 
 
+def _forward_open(prices, horizon: int):
+    """在原交易历上移动，不能先 dropna，否则缺失端点会被顺延。"""
+    valid = prices.where(np.isfinite(prices) & (prices > 0))
+    return (valid.shift(-(1 + horizon)) / valid.shift(-1) - 1.0).astype("float32")
+
+
 def forward_return(open_: pd.DataFrame, horizon: int) -> pd.DataFrame:
     """open-to-open 未来收益。"""
-    buy = open_.shift(-1)
-    sell = open_.shift(-(1 + horizon))
-    return (sell / buy.replace(0.0, np.nan) - 1.0).astype("float32")
+    return _forward_open(open_, horizon)
 
 
 def forward_benchmark(benchmark: pd.Series, horizon: int) -> pd.Series:
-    b = benchmark.astype("float64")
-    return (b.shift(-(1 + horizon)) / b.shift(-1) - 1.0).astype("float32")
+    return _forward_open(benchmark.astype("float64"), horizon)
 
 
 def build_label(
@@ -40,13 +43,26 @@ def build_label(
     normalize=False 时输出原始超额收益（用于 IC 分析与展示）。
     """
     fr = forward_return(open_, horizon)
-    fb = forward_benchmark(benchmark, horizon)
+    fb = forward_benchmark(benchmark.reindex(open_.index), horizon)
     excess = fr.sub(fb, axis=0)
     if mask is not None:
         excess = excess.where(mask)
     if not normalize:
         return excess
+    return rank_excess(excess)
+
+
+def rank_excess(excess: pd.DataFrame) -> pd.DataFrame:
     return excess.rank(axis=1, pct=True).astype("float32")
+
+
+def panel_excess(mats: dict[str, pd.DataFrame], benchmark_code: str, horizon: int,
+                 mask: pd.DataFrame | None) -> pd.DataFrame:
+    """生产与冒烟共用：从同一张开盘价表取股票和指数，端点无成交不计收益。"""
+    volume = mats['volume']
+    # 比例开盘价仅用于研究收益，不是成交报价或可提现的股利。
+    opens = (mats['open'] * mats['adj_factor']).where(np.isfinite(volume) & (volume > 0))
+    return build_label(opens, opens[benchmark_code], horizon, mask, normalize=False)
 
 
 def realized_return(open_: pd.DataFrame, horizon: int) -> pd.DataFrame:

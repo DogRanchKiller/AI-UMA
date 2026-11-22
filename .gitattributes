@@ -1,0 +1,3 @@
+# 证据与样本按原始字节入库（清单与测试会核对 SHA-256），不做换行转换。
+tests/fixtures/** -text
+data/m2/** -text
